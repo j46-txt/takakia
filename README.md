@@ -6,13 +6,13 @@ By eliminating heavy external framework SDKs and utilizing direct, stateless HTT
 
 ## Features
 
-* **Low-Spec Optimization:** Memory-constrained sliding-window truncation to preserve older hardware resources.
-* **SDK-Free Streaming:** Direct connection to Google Gemini and OpenAI-compatible REST endpoints.
-* **Setup Wizard:** Interactive configuration to automatically verify credentials and cache available models.
-* **Prompt Profiles:** Instant mid-session switching between behavioral system prompt personas.
-* **Terminal REPL:** Interactive interface with input history, markdown rendering, and slash-commands.
-* **Localization:** Native zero-overhead interface support for English and Brazilian Portuguese.
-* **Security & Stability:** Atomic configuration writes with strict file permissions (`0o600`) and background logging.
+* Sliding-window context truncation for low-spec hardware
+* Direct Gemini and OpenAI-compatible API streaming
+* Interactive configuration setup wizard
+* Dynamic system prompt profile switching
+* Terminal REPL with input history and slash-commands
+* English and Brazilian Portuguese localization
+* Secure configuration handling with strict file permissions (`0o600`) and background logging
 
 ## Core Slash Commands
 
@@ -53,7 +53,6 @@ Install the application locally:
 ```bash
 pip install .
 ```
-
 ### Step 3: Launch
 Run the global system command from anywhere in your terminal:
 ```bash
