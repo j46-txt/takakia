@@ -54,13 +54,6 @@ cd takakia
 ### Step 2: Install
 Run the automated installation script for your platform. The installer automatically handles background virtual environment isolation to cleanly bypass PEP 668 restrictions.
 
-#### Windows
-Open **PowerShell**, ensure you are inside the cloned `takakia` folder, and run this command:
-```powershell
-powershell -ExecutionPolicy Bypass -File .\install.ps1
-```
-*(Alternatively, you can run `.\install.ps1` directly if your system's execution policy already permits it).*
-
 #### Linux & macOS
 Open your **Terminal**, ensure you are inside the cloned `takakia` folder, and run this command:
 ```bash
@@ -68,6 +61,13 @@ chmod +x install.sh && ./install.sh
 ```
 > [!NOTE]
 > If you are running an ultra-minimalist Linux distribution (like antiX minimal or a barebones Debian server) and the script reports missing dependencies, run this command first to update your system: `sudo apt update && sudo apt install python3-venv python3-pip`.
+
+#### Windows
+Open **PowerShell**, ensure you are inside the cloned `takakia` folder, and run this command:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+*(Alternatively, you can run `.\install.ps1` directly if your system's execution policy already permits it).*
 
 ### Step 3: Launch
 Restart your terminal session to fully apply the path updates, then run the global command from anywhere:
