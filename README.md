@@ -70,7 +70,7 @@ Open **PowerShell**, ensure you are inside the cloned `takakia` folder, and exec
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
-*(Alternatively, you can run `.\install.ps1` directly if your system's execution policy already permits it).*
+*(Or run `.\install.ps1` directly if your system's execution policy already permits it).*
 
 ### Step 3: Launch
 Restart your terminal session to fully apply the path updates, then run the global command from anywhere:
