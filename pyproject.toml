@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "takakia"
 dynamic = ["version"]
-description = "A lightweight, lightning-fast command-line AI chat interface optimized for older or low-spec hardware."
+description = "A lightweight command-line AI chat interface optimized for older or low-spec hardware."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
@@ -35,14 +35,16 @@ dev = [
 ]
 
 [project.scripts]
-# O comando binário global foi atualizado para combinar com o novo nome do projeto
+# The global binary command was updated to match the new project name
 takakia = "takakia.main:main"
 
 [tool.hatch.version]
-path = "takakia/__init__.py"
+# Updated to point to the file inside the src/ folder
+path = "src/takakia/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["takakia"]
+# Updated to include packages starting from the src/ folder
+packages = ["src/takakia"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
