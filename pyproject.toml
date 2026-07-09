@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "takakia"
 dynamic = ["version"]
-description = "A lightweight, lightning-fast command-line AI chat interface optimized for low-end hardware."
+description = "A lightweight, lightning-fast command-line AI chat interface optimized for older or low-spec hardware."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
