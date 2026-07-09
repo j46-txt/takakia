@@ -43,35 +43,34 @@ Follow these steps to set up and run `takakia` on your machine:
 * **Python 3.9 or higher** installed.
 * An AI provider API key (e.g., OpenRouter, OpenAI, or Google Gemini).
 
-### Step 1: Clone the Project
-Open your terminal or Command Prompt and run:
+### Step 1: Clone the Project (or download it)
+Open your terminal or PowerShell and run:
 ```bash
 git clone https://github.com/j46-txt/takakia.git
 cd takakia
 ```
+*(If you downloaded and extracted the ZIP file from GitHub instead, just open your terminal and cd into the extracted folder).*
 
 ### Step 2: Install
 Run the automated installation script for your platform. The installer automatically handles background virtual environment isolation to cleanly bypass PEP 668 restrictions.
 
+#### Windows
+Open **PowerShell**, ensure you are inside the cloned `takakia` folder, and run this command:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+*(Alternatively, you can run `.\install.ps1` directly if your system's execution policy already permits it).*
+
 #### Linux & macOS
+Open your **Terminal**, ensure you are inside the cloned `takakia` folder, and run this command:
 ```bash
-chmod +x install.sh
-./install.sh
+chmod +x install.sh && ./install.sh
 ```
 > [!NOTE]
-> If you are running an ultra-minimalist Linux distribution (like antiX minimal or a barebones Debian server) that strips out Python's core environment utilities, the script will detect it and prompt you to add them:
-> ```bash
-> sudo apt update && sudo apt install python3-venv python3-pip
-> ```
-
-#### Windows (PowerShell)
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
-.\install.ps1
-```
+> If you are running an ultra-minimalist Linux distribution (like antiX minimal or a barebones Debian server) and the script reports missing dependencies, run this command first to update your system: `sudo apt update && sudo apt install python3-venv python3-pip`.
 
 ### Step 3: Launch
-Restart your terminal session to fully apply the path updates, then run the global system command from anywhere:
+Restart your terminal session to fully apply the path updates, then run the global command from anywhere:
 ```bash
 takakia
 ```
