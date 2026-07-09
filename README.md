@@ -16,7 +16,7 @@ The project intentionally prioritizes simplicity and efficiency. As a result, it
 * English and Brazilian Portuguese localization
 * Secure configuration handling with strict file permissions (`0o600`) and background logging
 
-## Core Slash Commands
+## Commands
 
 Inside the chat loop, type `/` followed by one of these commands to control your session:
 
