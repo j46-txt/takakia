@@ -28,7 +28,7 @@ class AppConfig:
     base_url: str = "https://openrouter.ai/api/v1"
     api_key: str = ""
     default_model: str = "meta-llama/llama-3.1-8b-instruct"
-    default_profile: str = "study"
+    default_profile: str = "default"
     extra_headers: dict[str, str] = field(default_factory=dict)
 
 
