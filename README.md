@@ -51,23 +51,28 @@ cd takakia
 ```
 
 ### Step 2: Install
-Install the application locally:
+Run the automated installation script for your platform. The installer automatically handles background virtual environment isolation to cleanly bypass PEP 668 restrictions.
+
+#### Linux & macOS
 ```bash
-pip install .
+chmod +x install.sh
+./install.sh
 ```
 > [!NOTE]
-> **For Linux users (antiX 23+, Debian 12+, Ubuntu 23.04+, Arch, Fedora, etc.):** 
-> Modern distributions restrict global `pip` installations by default (PEP 668). While a native installer/script is being developed to handle this seamlessly, please use a virtual environment to install and run the application:
-> 
+> If you are running an ultra-minimalist Linux distribution (like antiX minimal or a barebones Debian server) that strips out Python's core environment utilities, the script will detect it and prompt you to add them:
 > ```bash
-> python3 -m venv venv
-> source venv/bin/activate
-> pip install .
+> sudo apt update && sudo apt install python3-venv python3-pip
 > ```
 
+#### Windows (PowerShell)
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
+.\install.ps1
+```
+
 ### Step 3: Launch
-Run the global system command from anywhere in your terminal:
+Restart your terminal session to fully apply the path updates, then run the global system command from anywhere:
 ```bash
 takakia
 ```
-*Note: On your first run, an interactive wizard will guide you through setting up your language, API key, and preferred model.*
+*Note: On your first run, an interactive wizard will guide you through setting up your interface language, API key, and preferred model.*
