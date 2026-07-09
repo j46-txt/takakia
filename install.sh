@@ -26,11 +26,11 @@ if [ "$MAJOR" -lt 3 ] || { [ "$MAJOR" -eq 3 ] && [ "$MINOR" -lt 9 ]; }; then
 fi
 
 # 3. Detect and handle PEP 668 missing venv structures (Crucial for antiX/Debian Minimal)
-if ! python3 -c "import venv" &> /dev/null; then
-    echo -e "${RED}❌ Error: The Python 'venv' standard library module is missing.${NC}"
-    echo -e "${YELLOW}Minimalist Linux distributions (like Debian, Ubuntu, and antiX) decouple this module.${NC}"
+if ! python3 -c "import venv, ensurepip" &> /dev/null; then
+    echo -e "${RED}❌ Error: Python 'venv' or 'ensurepip' modules are missing.${NC}"
+    echo -e "${YELLOW}Minimalist Linux distributions (like Debian, Ubuntu, and antiX) decouple these modules.${NC}"
     echo -e "Please install the missing system packages via your package manager first:"
-    echo -e "    ${GREEN}sudo apt update && sudo apt install python3-venv python3-pip${NC}"
+    echo -e "    ${GREEN}sudo apt update && sudo apt install python3-venv${NC}"
     exit 1
 fi
 
