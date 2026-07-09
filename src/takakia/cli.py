@@ -41,12 +41,21 @@ class ChatCLI:
         system_prompt = self.profile_manager.load_profile(self.config.default_profile)
         self.session = ChatSession(system_prompt=system_prompt)
         
-        self.provider = OpenAICompatibleProvider(
-            api_key=self.config.api_key,
-            base_url=self.config.base_url,
-            default_model=self.config.default_model,
-            extra_headers=self.config.extra_headers,
-        )
+        if self.config.provider_name.lower() in ("gemini", "google") or "generativelanguage.googleapis.com" in self.config.base_url.lower():
+            from takakia.providers.google import GoogleGeminiProvider
+            self.provider = GoogleGeminiProvider(
+                api_key=self.config.api_key,
+                base_url=self.config.base_url,
+                default_model=self.config.default_model,
+                extra_headers=self.config.extra_headers,
+            )
+        else:
+            self.provider = OpenAICompatibleProvider(
+                api_key=self.config.api_key,
+                base_url=self.config.base_url,
+                default_model=self.config.default_model,
+                extra_headers=self.config.extra_headers,
+            )
         self.history_path = self.config_manager.cache_dir / "chat_history.txt"
 
     def start(self) -> None:
@@ -286,12 +295,21 @@ class ChatCLI:
         self.provider.close()
         
         # Re-instantiate the provider completely to guarantee pristine encapsulation boundaries
-        self.provider = OpenAICompatibleProvider(
-            api_key=new_config.api_key,
-            base_url=new_config.base_url,
-            default_model=new_config.default_model,
-            extra_headers=new_config.extra_headers,
-        )
+        if new_config.provider_name.lower() in ("gemini", "google") or "generativelanguage.googleapis.com" in new_config.base_url.lower():
+            from takakia.providers.google import GoogleGeminiProvider
+            self.provider = GoogleGeminiProvider(
+                api_key=new_config.api_key,
+                base_url=new_config.base_url,
+                default_model=new_config.default_model,
+                extra_headers=new_config.extra_headers,
+            )
+        else:
+            self.provider = OpenAICompatibleProvider(
+                api_key=new_config.api_key,
+                base_url=new_config.base_url,
+                default_model=new_config.default_model,
+                extra_headers=new_config.extra_headers,
+            )
         
         new_prompt = self.profile_manager.load_profile(new_config.default_profile)
         self.session.update_system_prompt(new_prompt)
