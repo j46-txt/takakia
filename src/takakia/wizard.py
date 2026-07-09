@@ -54,6 +54,9 @@ class SetupWizard:
             if provider_name.lower() == "openai":
                 default_url = "https://api.openai.com/v1"
                 config.default_model = "gpt-4o-mini"
+            elif provider_name.lower() in ("gemini", "google"):
+                default_url = "https://generativelanguage.googleapis.com"
+                config.default_model = "gemini-2.5-flash"
             elif config.base_url:
                 default_url = config.base_url
                 
@@ -96,12 +99,21 @@ class SetupWizard:
             discovered_models: list[str] = []
             test_provider = None
             try:
-                test_provider = OpenAICompatibleProvider(
-                    api_key=config.api_key,
-                    base_url=config.base_url,
-                    default_model=config.default_model,
-                    extra_headers=config.extra_headers
-                )
+                if config.provider_name.lower() in ("gemini", "google") or "generativelanguage.googleapis.com" in config.base_url.lower():
+                    from takakia.providers.google import GoogleGeminiProvider
+                    test_provider = GoogleGeminiProvider(
+                        api_key=config.api_key,
+                        base_url=config.base_url,
+                        default_model=config.default_model,
+                        extra_headers=config.extra_headers
+                    )
+                else:
+                    test_provider = OpenAICompatibleProvider(
+                        api_key=config.api_key,
+                        base_url=config.base_url,
+                        default_model=config.default_model,
+                        extra_headers=config.extra_headers
+                    )
                 discovered_models = test_provider.list_models()
                 
                 if discovered_models:
