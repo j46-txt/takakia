@@ -1,4 +1,4 @@
-# Takakia
+# Takakia ⸙
 
 A command-line AI chat interface optimized for older or low-spec hardware.
 
