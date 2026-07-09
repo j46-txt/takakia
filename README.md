@@ -29,9 +29,9 @@ Inside the chat loop, type `/` followed by one of these commands to control your
 ## Technology
 
 * Python 3.9+
-* HTTPX (stateless network streaming)
-* Rich (beautiful terminal layouts and error grids)
-* Platformdirs (cross-platform directory compliance)
+* HTTPX
+* Rich
+* Platformdirs
 
 ## How to Run and Test
 
