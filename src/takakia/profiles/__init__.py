@@ -36,7 +36,7 @@ class ProfileManager:
                     profiles.append(item.name[:-3].lower())
         except (ImportError, TypeError, AttributeError, OSError):
             # Fallback to standard safety defaults if resource tracking fails or access is denied
-            return ["general", "study", "translation", "writing"]
+            return ["default", "general", "study", "translation", "writing"]
             
         return sorted(list(set(profiles)))
 
@@ -44,7 +44,7 @@ class ProfileManager:
         """
         Loads the contents of a specific markdown profile by name.
         
-        Falls back to loading the 'general' profile if the requested profile 
+        Falls back to loading the 'default' profile if the requested profile 
         does not exist or cannot be accessed.
         """
         clean_name = name.lower().strip()
@@ -58,7 +58,7 @@ class ProfileManager:
             pass
 
         # Primary safe fallback chain if a user calls a non-existent or corrupted profile
-        if clean_name != "general":
-            return self.load_profile("general")
+        if clean_name != "default":
+            return self.load_profile("default")
             
-        return "You are a helpful, direct, and intelligent AI assistant."
+        return ""
