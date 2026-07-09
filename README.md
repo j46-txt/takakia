@@ -60,4 +60,4 @@ Run the global system command from anywhere in your terminal:
 ```bash
 takakia
 ```
-*Note: On your first run, an interactive wizard will guide you through setting up your language, API key, and preferred model automatically.*
+*Note: On your first run, an interactive wizard will guide you through setting up your language, API key, and preferred model.*
