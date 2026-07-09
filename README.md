@@ -41,7 +41,7 @@ Follow these steps to set up and run `takakia` on your machine:
 
 ### Prerequisites
 * **Python 3.9 or higher** installed.
-* An AI provider API key (OpenRouter, OpenAI, or Google Gemini).
+* An AI provider API key (e.g., OpenRouter, OpenAI, or Google Gemini).
 
 ### Step 1: Clone the Project
 Open your terminal or Command Prompt and run:
