@@ -55,7 +55,7 @@ cd takakia
 Run the automated installation script for your platform. The installer automatically handles background virtual environment isolation to bypass PEP 668 restrictions.
 
 #### Linux & macOS
-Open your **Terminal**, ensure you are inside the cloned `takakia` folder, and run this command:
+Open your **Terminal**, ensure you are inside the cloned `takakia` folder, and execute the installation script:
 ```bash
 chmod +x install.sh && ./install.sh
 ```
@@ -66,7 +66,7 @@ chmod +x install.sh && ./install.sh
 > ```
 
 #### Windows
-Open **PowerShell**, ensure you are inside the cloned `takakia` folder, and run this command:
+Open **PowerShell**, ensure you are inside the cloned `takakia` folder, and execute the installer bypassing the execution policy:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
