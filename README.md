@@ -1,6 +1,6 @@
 # Takakia 𖧧
 
-A command-line AI chat interface optimized for older or low-spec hardware. Built for an immediate, ready-to-use experience: open a terminal, type a prompt, and get answers.
+A command-line AI chat interface optimized for older or low-spec hardware. Built for an immediate, ready-to-use experience: open a terminal, type a prompt, and get the answer.
 
 By minimizing external dependencies and using direct, stateless HTTP streaming adapters, it delivers a responsive terminal chat experience while keeping its memory and CPU footprint exceptionally low.
 
