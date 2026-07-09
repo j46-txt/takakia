@@ -52,7 +52,7 @@ cd takakia
 *(If you downloaded and extracted the ZIP file from GitHub instead, just open your terminal and cd into the extracted folder).*
 
 ### Step 2: Install
-Run the automated installation script for your platform. The installer automatically handles background virtual environment isolation to cleanly bypass PEP 668 restrictions.
+Run the automated installation script for your platform. The installer automatically handles background virtual environment isolation to bypass PEP 668 restrictions.
 
 #### Linux & macOS
 Open your **Terminal**, ensure you are inside the cloned `takakia` folder, and run this command:
