@@ -55,6 +55,16 @@ Install the application locally:
 ```bash
 pip install .
 ```
+> [!NOTE]
+> **For Linux users (antiX 23+, Debian 12+, Ubuntu 23.04+, Arch, Fedora, etc.):** 
+> Modern distributions restrict global `pip` installations by default (PEP 668). While a native installer/script is being developed to handle this seamlessly, please use a virtual environment to install and run the application:
+> 
+> ```bash
+> python3 -m venv venv
+> source venv/bin/activate
+> pip install .
+> ```
+
 ### Step 3: Launch
 Run the global system command from anywhere in your terminal:
 ```bash
