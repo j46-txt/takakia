@@ -1,4 +1,4 @@
-# Takakia ⸙
+# Takakia 𖧧
 
 A command-line AI chat interface optimized for older or low-spec hardware.
 
@@ -6,13 +6,13 @@ By eliminating heavy external framework SDKs and utilizing direct, stateless HTT
 
 ## Features
 
-* **Low-Spec Optimization:** Uses a sliding-window truncation algorithm to keep conversation memory tightly constrained, preserving cycles on older machines.
-* **SDK-Free Streaming:** Direct integration with Google Gemini and OpenAI-compatible REST endpoints via lean streaming protocols.
-* **Interactive Setup Wizard:** Step-by-step onboarding sequence that automatically verifies credentials and dynamically pulls/caches available models from your provider.
-* **System Prompt Profiles:** Hot-swap conversational behaviors instantly mid-session using embedded markdown profiles.
-* **Robust Terminal REPL:** Features smooth user interaction with a 500-line input history buffer, markdown response rendering, and intuitive slash-commands.
-* **Native Localization:** Zero-overhead translation engine with full English and Brazilian Portuguese support.
-* **Secure Storage & Stability:** Implements atomic configuration file writing with strict file permissions (`0o600` on POSIX systems) and silent global diagnostic logging.
+* **Low-Spec Optimization:** Memory-constrained sliding-window truncation to preserve older hardware resources.
+* **SDK-Free Streaming:** Direct connection to Google Gemini and OpenAI-compatible REST endpoints.
+* **Setup Wizard:** Interactive configuration to automatically verify credentials and cache available models.
+* **Prompt Profiles:** Instant mid-session switching between behavioral system prompt personas.
+* **Terminal REPL:** Interactive interface with input history, markdown rendering, and slash-commands.
+* **Localization:** Native zero-overhead interface support for English and Brazilian Portuguese.
+* **Security & Stability:** Atomic configuration writes with strict file permissions (`0o600`) and background logging.
 
 ## Core Slash Commands
 
