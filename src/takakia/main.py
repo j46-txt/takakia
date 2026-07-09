@@ -19,6 +19,13 @@ from takakia.cli import ChatCLI
 from takakia.l10n import t
 from takakia.wizard import SetupWizard
 
+BANNER = """\
+┌───────────────────────────┐
+│░▀█▀░▄▀█░█░▄░▄▀█░█░▄░█░▄▀▄░│
+│░░▓░░▓▄▓░▓▄▀░▓▄▓░▓▄▀░█░█▄█░│
+│░░▓░░▓░▓░▓░▓░▓░▓░▓░▓░█░█░█░│
+└───────────────────────────┘"""
+
 
 def setup_diagnostic_logger(config_manager: ConfigManager) -> logging.Logger:
     """
@@ -49,6 +56,10 @@ def setup_diagnostic_logger(config_manager: ConfigManager) -> logging.Logger:
 def main() -> None:
     """Core initialization routine acting as the structural CLI process execution binary."""
     console = Console()
+    
+    # Render application banner exactly once at startup
+    console.print(BANNER)
+    
     config_manager = ConfigManager()
     logger = setup_diagnostic_logger(config_manager)
     
