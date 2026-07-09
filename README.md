@@ -1,9 +1,8 @@
 # Takakia
 
-A command-line AI chat interface optimized for older or low-spec hardware. 
-By eliminating heavy external framework SDKs and utilizing direct, stateless HTTP streaming adapters, it delivers a responsive, jitter-free terminal chat experience while keeping its memory and CPU footprint exceptionally low.
+A command-line AI chat interface optimized for older or low-spec hardware.
 
-> Built under clean architecture principles to ensure complete local data separation, secure secret token handling, and multi-language support.
+By eliminating heavy external framework SDKs and utilizing direct, stateless HTTP streaming adapters, it delivers a responsive, jitter-free terminal chat experience while keeping its memory and CPU footprint exceptionally low.
 
 ## Features
 
@@ -36,9 +35,28 @@ Inside the chat loop, type `/` followed by one of these commands to control your
 
 ## How to Run and Test
 
-### Step 3: Launch the Application
-Start the interactive onboarding sequence and chat client by running the main execution binary:
+Follow these steps to set up and run `takakia` on your machine:
+
+### Prerequisites
+* **Python 3.9 or higher** installed.
+* An AI provider API key (OpenRouter, OpenAI, or Google Gemini).
+
+### Step 1: Clone the Project
+Open your terminal or Command Prompt and run:
 ```bash
-python main.py
+git clone https://github.com/j46-txt/takakia.git
+cd takakia
 ```
-On your first run, the interactive configuration setup wizard will automatically boot up to guide you through language settings, provider endpoint URLs, and API key entries
+
+### Step 2: Install
+Install the application locally:
+```bash
+pip install .
+```
+
+### Step 3: Launch
+Run the global system command from anywhere in your terminal:
+```bash
+takakia
+```
+*Note: On your first run, an interactive wizard will guide you through setting up your language, API key, and preferred model automatically.*
