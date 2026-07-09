@@ -3,7 +3,7 @@
 A lightweight, lightning-fast command-line AI chat interface optimized explicitly for older or low-spec hardware.
 Modern web-based AI interfaces are heavy, cluttered, and introduce noticeable CPU/RAM lag on older laptops. This application strips away the overhead.
 
-### Key Highlights
+## Features
 * **Minimalist Stack:** Avoids heavy multi-tier SDKs. Powered directly by generic `httpx` and `rich` rendering.
 * **Universal Compatibility:** A single implementation structured around API compatibility. Works out of the box with OpenRouter (default), OpenAI, Groq, Together, DeepInfra, or local LLMs (Ollama) via any OpenAI-v1 compliant endpoint.
 * **Local Model Caching:** Available models are fetched on demand and cached locally to keep day-to-day execution speeds independent of network handshakes.
