@@ -60,7 +60,10 @@ Open your **Terminal**, ensure you are inside the cloned `takakia` folder, and r
 chmod +x install.sh && ./install.sh
 ```
 > [!NOTE]
-> If you are running an ultra-minimalist Linux distribution (like antiX minimal or a barebones Debian server) and the script reports missing dependencies, run this command first to update your system: `sudo apt update && sudo apt install python3-venv python3-pip`.
+> If you are running an ultra-minimalist Linux distribution (like antiX minimal or a barebones Debian server) that strips out Python's core environment utilities, the script will detect it and prompt you to add them:
+> ```bash
+> sudo apt update && sudo apt install python3-venv python3-pip
+> ```
 
 #### Windows
 Open **PowerShell**, ensure you are inside the cloned `takakia` folder, and run this command:
