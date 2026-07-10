@@ -47,6 +47,8 @@ Inside the chat loop, type `/` followed by one of these commands to control your
 * Rich
 * Platformdirs
 
+---
+
 ## How to Run and Test
 
 Follow these steps to set up and run `takakia` on your machine:
