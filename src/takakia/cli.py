@@ -57,14 +57,14 @@ class ChatCLI:
         self.history_path = self.config_manager.cache_dir / "chat_history.txt"
         self.config_manager.ensure_directories()
 
-        # Configure prompt_toolkit custom inputs
+        # Configure prompt_toolkit custom inputs securely
         self.kb = KeyBindings()
         
         @self.kb.add("enter")
         def _(event):
             event.current_buffer.validate_and_handle()
             
-        @self.kb.add("m-enter")
+        @self.kb.add("escape", "enter")
         def _(event):
             event.current_buffer.insert_text("\n")
             
