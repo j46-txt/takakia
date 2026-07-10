@@ -33,6 +33,11 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "Installing dependencies and packages natively..." -ForegroundColor Yellow
 $pipPath = Join-Path $venvDir "Scripts\pip.exe"
 & $pipPath install --upgrade pip --quiet
+
+# Inject drop-in replacement for readline on Windows platforms
+Write-Host "Injecting advanced terminal line interaction support wrappers..." -ForegroundColor Yellow
+& $pipPath install pyreadline3 --quiet
+
 & $pipPath install . --quiet
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Pip internal execution phase encountered a critical failure sequence."
@@ -48,12 +53,26 @@ $batContent = @"
 "@
 Set-Content -Path $batPath -Value $batContent
 
-# 6. Safely bind binary pathway to target registry environment variables
-$userPath = [Environment]::GetEnvironmentVariable("Path", [EnvironmentVariableTarget]::User)
-if ($userPath -notlike "*$binDir*") {
+# 6. Safely bind binary pathway preserving ExpandString (REG_EXPAND_SZ) metadata integrity
+$registryKeyPath = "HKCU:\Environment"
+$rawUserPath = (Get-ItemProperty -Path $registryKeyPath -Name Path -ErrorAction SilentlyContinue).Path
+
+# Split paths systematically by semicolon to eliminate duplicate tracking risks cleanly
+$pathElements = if ([string]::IsNullOrEmpty($rawUserPath)) { @() } else { $rawUserPath -split ';' }
+$cleanBinDir = $binDir.TrimEnd('\')
+
+if ($pathElements -notcontains $cleanBinDir -and $pathElements -notcontains "$cleanBinDir\") {
     Write-Host "Injecting local binary routing node to User PATH environment..." -ForegroundColor Yellow
-    [Environment]::SetEnvironmentVariable("Path", "$userPath;$binDir", [EnvironmentVariableTarget]::User)
-    $env:Path += ";$binDir"
+    
+    # Re-assemble path elements elegantly without leading or trailing structural empty fields
+    $filteredElements = $pathElements | Where-Object { $_.Trim() -ne "" }
+    $newPathString = (($filteredElements + $cleanBinDir) -join ';')
+    
+    # Force creation or overwrite using explicit structural ExpandString parameters securely
+    Set-ItemProperty -Path $registryKeyPath -Name Path -Value $newPathString -Type ExpandString
+    
+    # Re-align operational session environments cleanly for current host process execution context
+    $env:Path = ($env:Path.TrimEnd(';') + ";$cleanBinDir")
     Write-Host "✅ Installation completed successfully! Please restart your terminal application window to initialize path sync." -ForegroundColor Green
 } else {
     Write-Host "✅ Installation completed successfully! Run the application globally using: takakia" -ForegroundColor Green
