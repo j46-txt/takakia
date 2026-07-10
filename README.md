@@ -18,7 +18,7 @@ The project intentionally prioritizes simplicity and efficiency. As a result, it
 
 ## Profiles
 
-Profiles are optional system prompts that adjust how the AI approaches your requests. They do not change the underlying model or provider—only its behavior.
+Profiles are optional system prompts that adjust how the AI approaches your requests. They do not change the underlying model or provider, only its behavior.
 
 For example, `study` encourages structured teaching, `translation` focuses on faithful translations with brief linguistic notes, and `writing` prioritizes concise editing and copywriting. The default `general` profile keeps the assistant broadly useful while optimizing responses for a fast, plain-text terminal experience.
 
