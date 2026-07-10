@@ -16,7 +16,6 @@ except ImportError:
     readline = None
 
 from rich.console import Console
-from rich.markdown import Markdown
 from rich.markup import escape
 from rich.table import Table
 
@@ -48,7 +47,7 @@ class ChatCLI:
                 base_url=self.config.base_url,
                 default_model=self.config.default_model,
                 extra_headers=self.config.extra_headers,
-            )
+                )
         else:
             self.provider = OpenAICompatibleProvider(
                 api_key=self.config.api_key,
