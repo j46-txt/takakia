@@ -55,6 +55,14 @@ def setup_diagnostic_logger(config_manager: ConfigManager) -> logging.Logger:
 
 def main() -> None:
     """Core initialization routine acting as the structural CLI process execution binary."""
+    # Secure standard streaming pipes on Windows nodes against legacy code pages
+    if sys.platform == "win32":
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+        except AttributeError:
+            pass
+
     console = Console()
     
     # Render application banner exactly once at startup
