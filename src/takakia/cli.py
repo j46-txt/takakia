@@ -10,14 +10,14 @@ from __future__ import annotations
 import sys
 from typing import Optional
 
-try:
-    import readline
-except ImportError:
-    readline = None
-
 from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
+
+from prompt_toolkit import prompt as pt_prompt
+from prompt_toolkit.history import FileHistory
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.session import PromptSession
 
 from takakia.config import ConfigManager
 from takakia.l10n import t
@@ -56,6 +56,24 @@ class ChatCLI:
                 extra_headers=self.config.extra_headers,
             )
         self.history_path = self.config_manager.cache_dir / "chat_history.txt"
+        self.config_manager.ensure_directories()
+
+        # Configure prompt_toolkit custom multiline inputs
+        self.kb = KeyBindings()
+        
+        @self.kb.add("enter")
+        def _(event):
+            event.current_buffer.validate_and_handle()
+            
+        @self.kb.add("s-enter")
+        def _(event):
+            event.current_buffer.insert_text("\n")
+            
+        self.prompt_session = PromptSession(
+            history=FileHistory(str(self.history_path)),
+            key_bindings=self.kb,
+            multiline=True
+        )
 
     def start(self) -> None:
         """Launches the interactive session loop and intercepts standard exit hooks."""
@@ -66,14 +84,6 @@ class ChatCLI:
                 profile=self.config.default_profile,
             )
         )
-        
-        if readline:
-            try:
-                readline.set_history_length(500)
-                if self.history_path.is_file():
-                    readline.read_history_file(str(self.history_path))
-            except Exception:
-                pass
 
         try:
             while True:
@@ -98,19 +108,13 @@ class ChatCLI:
                 except Exception as e:
                     self._handle_unexpected_error(e)
         finally:
-            if readline:
-                try:
-                    self.config_manager.ensure_directories()
-                    readline.write_history_file(str(self.history_path))
-                except Exception:
-                    pass
             self.provider.close()
 
     def _prompt_input(self) -> Optional[str]:
         """Displays standard interface input labels and reads string characters from terminal."""
         self.console.print(t("cli_user_label", lang=self.lang))
         try:
-            text = input("> ")
+            text = self.prompt_session.prompt("> ")
             return text.strip()
         except EOFError:
             return None
@@ -223,7 +227,7 @@ class ChatCLI:
                 self.console.print(f"  [bold cyan]{idx}[/] - {escape(model)}")
                 
             try:
-                selection = input(t("cmd_model_switch", lang=self.lang)).strip()
+                selection = pt_prompt(t("cmd_model_switch", lang=self.lang)).strip()
                 if not selection:
                     self.console.print(t("cmd_model_empty", lang=self.lang))
                     return
@@ -256,7 +260,7 @@ class ChatCLI:
             self.console.print(t("cmd_profile_list", lang=self.lang, profiles=", ".join(available_profiles)))
             
             try:
-                argument = input(t("cmd_profile_switch", lang=self.lang)).strip()
+                argument = pt_prompt(t("cmd_profile_switch", lang=self.lang)).strip()
             except (EOFError, KeyboardInterrupt):
                 self.console.print()
                 return
