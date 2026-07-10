@@ -48,6 +48,7 @@ Inside the chat loop, type `/` followed by one of these commands to control your
 * Python 3.9+
 * HTTPX
 * Rich
+* Prompt Toolkit
 * Platformdirs
 
 ---
