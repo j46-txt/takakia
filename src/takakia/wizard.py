@@ -140,8 +140,9 @@ class SetupWizard:
                 if selection:
                     if selection.isdigit():
                         num = int(selection)
-                        if 1 <= num <= len(visible_sample):
-                            config.default_model = visible_sample[num - 1]
+                        # Bounds check evaluates the full array list sequence safely
+                        if 1 <= num <= len(discovered_models):
+                            config.default_model = discovered_models[num - 1]
                         else:
                             self.console.print(f"\n[bold yellow]Selection choice index {num} out of range. Retaining baseline default.[/bold yellow]\n")
                     else:
@@ -161,12 +162,12 @@ class SetupWizard:
             self.console.print("\n[bold yellow]Setup onboarding execution interrupted.[/bold yellow]")
             return None
 
-    def _setup_language(self) -> str:
-        """Presents internal internationalization choices and intercepts selection keys."""
-        while True:
-            choice = input(f"{t('wizard_lang_select', lang='en')} [en]: ").strip().lower()
-            if not choice:
-                return "en"
-            if choice in ("en", "pt_br"):
-                return choice
-            self.console.print(t("wizard_lang_invalid", lang="en"))
+            def _setup_language(self) -> str:
+                """Presents internal internationalization choices and intercepts selection keys."""
+                while True:
+                    choice = input(f"{t('wizard_lang_select', lang='en')} [en]: ").strip().lower()
+                    if not choice:
+                        return "en"
+                    if choice in ("en", "pt_br"):
+                        return choice
+                    self.console.print(t("wizard_lang_invalid", lang="en"))
