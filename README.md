@@ -16,6 +16,14 @@ The project intentionally prioritizes simplicity and efficiency. As a result, it
 * English and Brazilian Portuguese localization
 * Secure configuration handling with strict file permissions (`0o600`) and background logging
 
+## Profiles
+
+Profiles are optional system prompts that adjust how the AI approaches your requests. They do not change the underlying model or provider—only its behavior.
+
+For example, `study` encourages structured teaching, `translation` focuses on faithful translations with brief linguistic notes, and `writing` prioritizes concise editing and copywriting. The default `general` profile keeps the assistant broadly useful while optimizing responses for a fast, plain-text terminal experience.
+
+To disable all profile instructions and interact with the model using only your prompts, switch to the `disabled` profile with the `/profile` command.
+
 ## Commands
 
 Inside the chat loop, type `/` followed by one of these commands to control your session:
