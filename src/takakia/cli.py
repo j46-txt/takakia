@@ -131,7 +131,7 @@ class ChatCLI:
             first_token = None
             
             # Display a dynamic ellipsis (...) animation while waiting for network response
-            with self.console.status("", spinner="ellipsis"):
+            with self.console.status("", spinner="simpleDots"):
                 try:
                     first_token = next(stream)
                 except StopIteration:
