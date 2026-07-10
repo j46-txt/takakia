@@ -162,12 +162,12 @@ class SetupWizard:
             self.console.print("\n[bold yellow]Setup onboarding execution interrupted.[/bold yellow]")
             return None
 
-            def _setup_language(self) -> str:
-                """Presents internal internationalization choices and intercepts selection keys."""
-                while True:
-                    choice = input(f"{t('wizard_lang_select', lang='en')} [en]: ").strip().lower()
-                    if not choice:
-                        return "en"
-                    if choice in ("en", "pt_br"):
-                        return choice
-                    self.console.print(t("wizard_lang_invalid", lang="en"))
+    def _setup_language(self) -> str:
+        """Presents internal internationalization choices and intercepts selection keys."""
+        while True:
+            choice = input(f"{t('wizard_lang_select', lang='en')} [en]: ").strip().lower()
+            if not choice:
+                return "en"
+            if choice in ("en", "pt_br"):
+                return choice
+            self.console.print(t("wizard_lang_invalid", lang="en"))
