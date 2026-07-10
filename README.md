@@ -43,6 +43,9 @@ Inside the chat loop, type `/` followed by one of these commands to control your
 * `/setup` - Reruns the interactive wizard to update API keys and endpoints safely.
 * `/exit` / `/quit` - Closes the application cleanly.
 
+> [!TIP]
+> To insert a new line in your input without sending the message, press `ALT + ENTER`.
+
 ## Technology
 
 * Python 3.9+
