@@ -14,10 +14,9 @@ from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
-from prompt_toolkit import prompt as pt_prompt
+from prompt_toolkit import PromptSession, prompt as pt_prompt
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.session import PromptSession
 
 from takakia.config import ConfigManager
 from takakia.l10n import t
