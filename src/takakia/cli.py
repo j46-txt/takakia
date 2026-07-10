@@ -128,11 +128,29 @@ class ChatCLI:
         full_response_buffer = []
         
         try:
-            # Bypass intermediate Rich layout buffering to provide jitter-free character updates
-            for token in self.provider.stream_chat(messages=payload, model=self.config.default_model):
-                sys.stdout.write(token)
+            # Display a dynamic ellipsis (...) animation while waiting for network response
+            with self.console.status("", spinner="ellipsis") as status:
+                stream = self.provider.stream_chat(messages=payload, model=self.config.default_model)
+                
+                # Intercept the very first token to halt the placeholder animation
+                try:
+                    first_token = next(stream)
+                except StopIteration:
+                    first_token = None
+                
+                # Clear the terminal status tracker immediately
+                status.stop()
+
+            # Push the initial token forward and consume the remaining live stream pipeline
+            if first_token is not None:
+                sys.stdout.write(first_token)
                 sys.stdout.flush()
-                full_response_buffer.append(token)
+                full_response_buffer.append(first_token)
+                
+                for token in stream:
+                    sys.stdout.write(token)
+                    sys.stdout.flush()
+                    full_response_buffer.append(token)
                 
             # Align console metrics post stream rendering explicitly
             self.console.print()
