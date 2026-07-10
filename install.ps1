@@ -34,10 +34,6 @@ Write-Host "Installing dependencies and packages natively..." -ForegroundColor Y
 $pipPath = Join-Path $venvDir "Scripts\pip.exe"
 & $pipPath install --upgrade pip --quiet
 
-# Inject drop-in replacement for readline on Windows platforms
-Write-Host "Injecting advanced terminal line interaction support wrappers..." -ForegroundColor Yellow
-& $pipPath install pyreadline3 --quiet
-
 & $pipPath install . --quiet
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Pip internal execution phase encountered a critical failure sequence."
