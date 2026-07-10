@@ -24,7 +24,7 @@ For example, `study` encourages structured teaching, `translation` focuses on fa
 
 To disable all profile instructions and interact with the model using only your prompts, switch to the `disabled` profile with the `/profile` command.
 
-> [!]
+> [!TIP]
 > Profiles are plain Markdown files containing system prompts. To create your own, simply add a new `.md` file to `takakia/profiles/`.
 > The application automatically discovers new profile files at startup, making it easy to customize the assistant for your own workflows.
 
@@ -71,7 +71,7 @@ Open your **Terminal**, ensure you are inside the cloned `takakia` folder, and e
 ```bash
 chmod +x install.sh && ./install.sh
 ```
-> [!]
+> [!NOTE]
 > If you are running an ultra-minimalist Linux distribution (like antiX minimal or a barebones Debian server) that strips out Python's core environment utilities, the script will detect it and prompt you to add them:
 > ```bash
 > sudo apt update && sudo apt install python3-venv python3-pip
@@ -89,4 +89,4 @@ Restart your terminal session to fully apply the path updates, then run the glob
 ```bash
 takakia
 ```
-*Note: On your first run, an interactive wizard will guide you through setting up your interface language, API key, and preferred model.*
+*On your first run, an interactive wizard will guide you through setting up your interface language, API key, and preferred model.*
