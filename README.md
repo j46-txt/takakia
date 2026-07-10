@@ -25,8 +25,11 @@ For example, `study` encourages structured teaching, `translation` focuses on fa
 To disable all profile instructions and interact with the model using only your prompts, switch to the `disabled` profile with the `/profile` command.
 
 > [!TIP]
-> Profiles are plain Markdown files containing system prompts. To create your own, simply add a new `.md` file to `takakia/profiles/`.
-> The application automatically discovers new profile files at startup, making it easy to customize the assistant for your own workflows.
+> Profiles are plain Markdown files containing system prompts. To create your own custom workflows without reinstalling the application, simply add a new `.md` file to your local configuration directory:
+> * **Linux & macOS:** `~/.config/takakia/profiles/`
+> * **Windows:** `%APPDATA%\takakia\profiles\`
+> 
+> *(Alternatively, you can place your custom profiles inside the `src/takakia/profiles/` directory in the source folder before running the installation script).*
 
 ## Commands
 
