@@ -57,14 +57,14 @@ class ChatCLI:
         self.history_path = self.config_manager.cache_dir / "chat_history.txt"
         self.config_manager.ensure_directories()
 
-        # Configure prompt_toolkit custom multiline inputs
+        # Configure prompt_toolkit custom inputs
         self.kb = KeyBindings()
         
         @self.kb.add("enter")
         def _(event):
             event.current_buffer.validate_and_handle()
             
-        @self.kb.add("s-enter")
+        @self.kb.add("m-enter")
         def _(event):
             event.current_buffer.insert_text("\n")
             
@@ -127,18 +127,15 @@ class ChatCLI:
         full_response_buffer = []
         
         try:
+            stream = self.provider.stream_chat(messages=payload, model=self.config.default_model)
+            first_token = None
+            
             # Display a dynamic ellipsis (...) animation while waiting for network response
-            with self.console.status("", spinner="ellipsis") as status:
-                stream = self.provider.stream_chat(messages=payload, model=self.config.default_model)
-                
-                # Intercept the very first token to halt the placeholder animation
+            with self.console.status("", spinner="ellipsis"):
                 try:
                     first_token = next(stream)
                 except StopIteration:
-                    first_token = None
-                
-                # Clear the terminal status tracker immediately
-                status.stop()
+                    pass
 
             # Push the initial token forward and consume the remaining live stream pipeline
             if first_token is not None:
