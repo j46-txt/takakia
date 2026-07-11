@@ -96,8 +96,8 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 *(Or run `.\install.ps1` directly if your system's execution policy already permits it).*
 
 ### Step 3: Launch
-Restart your terminal session to fully apply the path updates, then run the global command from anywhere:
+Run the global command in your terminal from anywhere:
 ```bash
 takakia
 ```
-*On your first run, an interactive wizard will guide you through setting up your interface language, API key, and preferred model.*
+*On the first run, an interactive wizard will guide you through setting up interface language, API key, and preferred model.*
