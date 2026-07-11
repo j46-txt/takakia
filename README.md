@@ -6,7 +6,7 @@ By minimizing external dependencies and using direct, stateless HTTP streaming a
 
 The project intentionally prioritizes simplicity and efficiency. As a result, it does not support file or image attachments, and conversation history is limited to a bounded sliding window (~40,000 characters) to keep resource usage predictable on modest systems.
 
-<sub>(A TUI implementation using prompt_toolkit is planned for the future.)</sub>
+<sub>(A TUI implementation using prompt_toolkit is planned for the future)</sub>
 
 ## Features
 
@@ -74,7 +74,7 @@ cd takakia
 ```
 *(If you downloaded and extracted the ZIP file from GitHub instead, just open your terminal and cd into the extracted folder).*
 
-### Step 2: Install
+### Step 2: Install (or update)
 Run the automated installation script for your platform. The installer automatically handles background virtual environment isolation to bypass PEP 668 restrictions.
 
 #### Linux & macOS
