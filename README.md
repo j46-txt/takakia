@@ -6,6 +6,8 @@ By minimizing external dependencies and using direct, stateless HTTP streaming a
 
 The project intentionally prioritizes simplicity and efficiency. As a result, it does not support file or image attachments, and conversation history is limited to a bounded sliding window (~40,000 characters) to keep resource usage predictable on modest systems.
 
+<small>(A TUI implementation using prompt_toolkit is planned for the future.)</small>
+
 ## Features
 
 * Sliding-window context truncation for low-spec hardware
