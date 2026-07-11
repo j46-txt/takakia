@@ -11,8 +11,10 @@ import sys
 from typing import Optional
 
 from rich.console import Console
+from rich.live import Live
 from rich.markup import escape
 from rich.table import Table
+from rich.text import Text
 
 from prompt_toolkit import PromptSession, prompt as pt_prompt
 from prompt_toolkit.history import FileHistory
@@ -139,35 +141,33 @@ class ChatCLI:
 
             # Push the initial token forward and consume the remaining live stream pipeline
             if first_token is not None:
-                sys.stdout.write(first_token)
-                sys.stdout.flush()
                 full_response_buffer.append(first_token)
                 
-                for token in stream:
-                    sys.stdout.write(token)
-                    sys.stdout.flush()
-                    full_response_buffer.append(token)
+                # Instantiate a clean Text renderable for native whole-word wrapping
+                text_obj = Text(first_token)
                 
-            # Align console metrics post stream rendering explicitly
-            self.console.print()
+                # Throttling updates keeps the CPU footprint low on legacy hardware
+                with Live(text_obj, console=self.console, refresh_per_second=12, transient=False) as live:
+                    for token in stream:
+                        full_response_buffer.append(token)
+                        text_obj.append(token)
+                        live.update(text_obj)
+                
             complete_text = "".join(full_response_buffer)
             if complete_text:
                 self.session.add_message(role="assistant", content=complete_text)
                 
         except KeyboardInterrupt:
-            self.console.print()
             complete_text = "".join(full_response_buffer)
             if complete_text:
                 self.session.add_message(role="assistant", content=complete_text)
             self.console.print("\n[yellow]Response generation stream suspended by user.[/yellow]")
         except ProviderError as pe:
-            self.console.print()
             complete_text = "".join(full_response_buffer)
             if complete_text:
                 self.session.add_message(role="assistant", content=complete_text)
             self._handle_provider_error(pe)
         except Exception as e:
-            self.console.print()
             raise e
 
     def _handle_command(self, cmd_string: str) -> bool:
