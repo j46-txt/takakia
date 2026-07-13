@@ -58,7 +58,7 @@ Inside the chat loop, type `/` followed by one of these commands to control your
 
 ## About
 
-This project is one of the personal tools I built for myself. Not meant to change the world, just something that might also be useful to someone else.
+This project is one of the tools I built for myself. Not meant to change the world, just something that might also be useful to someone else.
 
 Feel free to fork it or submit a pull request!
 
