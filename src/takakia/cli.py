@@ -8,6 +8,7 @@ slash-command dispatch routing, and dynamic response token streaming.
 from __future__ import annotations
 
 import sys
+import time
 from typing import Optional
 
 from rich.console import Console
@@ -15,6 +16,7 @@ from rich.live import Live
 from rich.markup import escape
 from rich.table import Table
 from rich.text import Text
+from rich.markdown import Markdown
 
 from prompt_toolkit import PromptSession, prompt as pt_prompt
 from prompt_toolkit.history import FileHistory
@@ -41,7 +43,7 @@ class ChatCLI:
         system_prompt = self.profile_manager.load_profile(self.config.default_profile)
         self.session = ChatSession(system_prompt=system_prompt)
         
-        if self.config.provider_name.lower() in ("gemini", "google") or "generativelanguage.googleapis.com" in self.config.base_url.lower():
+        if self.config.is_gemini_native:
             from takakia.providers.google import GoogleGeminiProvider
             self.provider = GoogleGeminiProvider(
                 api_key=self.config.api_key,
@@ -59,7 +61,7 @@ class ChatCLI:
         self.history_path = self.config_manager.cache_dir / "chat_history.txt"
         self.config_manager.ensure_directories()
 
-        # Configure prompt_toolkit custom inputs securely
+        # Configure standard CLI chat UX: Enter submits, Alt+Enter (Escape, Enter) breaks line
         self.kb = KeyBindings()
         
         @self.kb.add("enter")
@@ -140,20 +142,37 @@ class ChatCLI:
                     pass
 
             # Push the initial token forward and consume the remaining live stream pipeline
+            complete_text = ""
             if first_token is not None:
                 full_response_buffer.append(first_token)
+                complete_text = "".join(full_response_buffer)
                 
-                # Instantiate a clean Text renderable for native whole-word wrapping
-                text_obj = Text(first_token)
+                last_render_time = time.monotonic()
+                current_len = len(complete_text)
                 
-                # Throttling updates keeps the CPU footprint low on legacy hardware
-                with Live(text_obj, console=self.console, refresh_per_second=12, transient=False) as live:
+                # Disable the background thread entirely (auto_refresh=False)
+                with Live(Markdown(complete_text), console=self.console, auto_refresh=False, transient=False) as live:
                     for token in stream:
                         full_response_buffer.append(token)
-                        text_obj.append(token)
-                        live.update(text_obj)
+                        current_len += len(token)
+                        current_time = time.monotonic()
+                        
+                        # Adaptive UI Throttling for Low-Spec Hardware:
+                        # Base 0.05s delay + 0.02s penalty for every 1000 characters processed.
+                        # This prevents the rich Markdown AST parser from locking up the CPU on O(N^2) tasks.
+                        adaptive_delay = 0.05 + (current_len / 1000.0) * 0.02
+                        adaptive_delay = min(adaptive_delay, 0.5) # Hard cap at 0.5s so it never freezes
+                        
+                        if current_time - last_render_time >= adaptive_delay:
+                            live.update(Markdown("".join(full_response_buffer)), refresh=True)
+                            last_render_time = current_time
+                    
+                    # Ensure the final output frame is flushed perfectly
+                    complete_text = "".join(full_response_buffer)
+                    live.update(Markdown(complete_text), refresh=True)
+            else:
+                self.console.print("\n[dim yellow]The provider returned an empty response stream.[/dim yellow]")
                 
-            complete_text = "".join(full_response_buffer)
             if complete_text:
                 self.session.add_message(role="assistant", content=complete_text)
                 
@@ -167,8 +186,14 @@ class ChatCLI:
             if complete_text:
                 self.session.add_message(role="assistant", content=complete_text)
             self._handle_provider_error(pe)
-        except Exception as e:
-            raise e
+        except Exception:
+            complete_text = "".join(full_response_buffer)
+            if complete_text:
+                self.session.add_message(role="assistant", content=complete_text)
+            raise
+        finally:
+            if 'stream' in locals() and hasattr(stream, 'close'):
+                stream.close()
 
     def _handle_command(self, cmd_string: str) -> bool:
         """Parses commands starting with forward slashes."""
@@ -312,7 +337,7 @@ class ChatCLI:
         self.provider.close()
         
         # Re-instantiate the provider completely to guarantee pristine encapsulation boundaries
-        if new_config.provider_name.lower() in ("gemini", "google") or "generativelanguage.googleapis.com" in new_config.base_url.lower():
+        if new_config.is_gemini_native:
             from takakia.providers.google import GoogleGeminiProvider
             self.provider = GoogleGeminiProvider(
                 api_key=new_config.api_key,
@@ -329,7 +354,8 @@ class ChatCLI:
             )
         
         new_prompt = self.profile_manager.load_profile(new_config.default_profile)
-        self.session.update_system_prompt(new_prompt)
+        self.session.clear(alternative_prompt=new_prompt)
+        self.console.print("\n[dim]System reset: Conversation context cleared to prevent cross-provider payload poisoning.[/dim]")
 
     def _handle_provider_error(self, error: ProviderError) -> None:
         """Extracts status signatures from custom provider boundaries safely."""
