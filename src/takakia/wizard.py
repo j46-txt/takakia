@@ -8,14 +8,16 @@ and API key entries while validating credentials dynamically against live endpoi
 from __future__ import annotations
 
 import getpass
+import re
 import sys
 from typing import Optional
+from urllib.parse import urlparse
 
 from rich.console import Console
 
 from takakia.config import AppConfig, ConfigManager
 from takakia.l10n import t
-from takakia.providers.base import ProviderError
+from takakia.providers.base import AuthenticationError, ProviderError
 from takakia.providers.compatible import OpenAICompatibleProvider
 
 
@@ -67,10 +69,15 @@ class SetupWizard:
             # Enforce and self-heal basic connection layer protocol scheme requirements
             cleaned_url = base_url.rstrip("/")
             if not (cleaned_url.startswith("http://") or cleaned_url.startswith("https://")):
-                if "localhost" in cleaned_url or "127.0.0.1" in cleaned_url:
-                    cleaned_url = f"http://{cleaned_url}"
-                else:
-                    cleaned_url = f"https://{cleaned_url}"
+                # Prefix temporarily to trick urlparse into mapping the netloc correctly
+                temp_url = f"http://{cleaned_url}"
+                hostname = urlparse(temp_url).hostname or ""
+
+                is_local = (
+                    hostname in ("localhost", "127.0.0.1", "::1") or
+                    re.match(r"^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)", hostname)
+                )
+                cleaned_url = f"http://{cleaned_url}" if is_local else f"https://{cleaned_url}"
             config.base_url = cleaned_url
 
             # 3. Securely Capture API Token Credentials
@@ -99,7 +106,7 @@ class SetupWizard:
             discovered_models: list[str] = []
             test_provider = None
             try:
-                if config.provider_name.lower() in ("gemini", "google") or "generativelanguage.googleapis.com" in config.base_url.lower():
+                if config.is_gemini_native:
                     from takakia.providers.google import GoogleGeminiProvider
                     test_provider = GoogleGeminiProvider(
                         api_key=config.api_key,
@@ -121,6 +128,9 @@ class SetupWizard:
                     self.config_manager.save_model_cache(discovered_models)
             except ProviderError as pe:
                 self.console.print(t("wizard_fetch_failed", lang=lang, error=str(pe)))
+                if isinstance(pe, AuthenticationError):
+                    self.console.print("\n[bold red]FATAL: API Key is invalid. Aborting setup.[/bold red]")
+                    return None
             finally:
                 if test_provider is not None:
                     test_provider.close()
