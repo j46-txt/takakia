@@ -76,8 +76,14 @@ class GoogleGeminiProvider(BaseProvider):
             
             if role == "system":
                 system_instruction_text = content
+                continue
+                
+            gemini_role = "user" if role == "user" else "model"
+            
+            # Prevent HTTP 400 by folding consecutive identical roles
+            if contents and contents[-1]["role"] == gemini_role:
+                contents[-1]["parts"][0]["text"] += f"\n\n{content}"
             else:
-                gemini_role = "user" if role == "user" else "model"
                 contents.append({
                     "role": gemini_role,
                     "parts": [{"text": content}]
@@ -93,47 +99,57 @@ class GoogleGeminiProvider(BaseProvider):
             }
 
         try:
+            event_buffer = []
             with self.client.stream("POST", url, headers=headers, params=params, json=payload) as response:
                 if response.status_code != 200:
                     self._handle_status_error(response)
 
                 for line in response.iter_lines():
-                    clean_line = line.strip()
-                    if not clean_line or not clean_line.startswith("data:"):
-                        continue
-                    
-                    raw_data = clean_line[5:].strip()
-                    if raw_data == "[DONE]":
-                        break
-                    
-                    try:
-                        chunk = json.loads(raw_data)
-                        if not isinstance(chunk, dict):
+                    # An empty line denotes the end of an SSE event block
+                    if not line:
+                        if not event_buffer:
                             continue
                             
-                        if "error" in chunk:
-                            error_obj = chunk["error"]
-                            if isinstance(error_obj, dict):
-                                error_msg = error_obj.get("message", "An upstream Gemini provider error occurred.")
-                            else:
-                                error_msg = str(error_obj)
-                            raise ProviderError(f"API Streaming Error: {error_msg}")
+                        # Reconstruct multi-line JSON structures natively compliant with SSE
+                        raw_data = "\n".join(event_buffer)
+                        event_buffer.clear()
+                        
+                        if raw_data.strip() == "[DONE]":
+                            break
                             
-                        candidates = chunk.get("candidates", [])
-                        if candidates and isinstance(candidates, list) and len(candidates) > 0:
-                            candidate = candidates[0]
-                            if isinstance(candidate, dict) and "content" in candidate:
-                                content_obj = candidate["content"]
-                                if isinstance(content_obj, dict) and "parts" in content_obj:
-                                    parts = content_obj["parts"]
-                                    if isinstance(parts, list):
-                                        for part in parts:
-                                            if isinstance(part, dict) and "text" in part:
-                                                text = part["text"]
-                                                if text:
-                                                    yield str(text)
-                    except (json.JSONDecodeError, TypeError, KeyError, IndexError):
-                        continue
+                        try:
+                            chunk = json.loads(raw_data)
+                            if not isinstance(chunk, dict):
+                                continue
+                                
+                            if "error" in chunk:
+                                error_obj = chunk["error"]
+                                if isinstance(error_obj, dict):
+                                    error_msg = error_obj.get("message", "An upstream Gemini provider error occurred.")
+                                else:
+                                    error_msg = str(error_obj)
+                                raise ProviderError(f"API Streaming Error: {error_msg}")
+                                
+                            candidates = chunk.get("candidates", [])
+                            if candidates and isinstance(candidates, list) and len(candidates) > 0:
+                                candidate = candidates[0]
+                                if isinstance(candidate, dict) and "content" in candidate:
+                                    content_obj = candidate["content"]
+                                    if isinstance(content_obj, dict) and "parts" in content_obj:
+                                        parts = content_obj["parts"]
+                                        if isinstance(parts, list):
+                                            for part in parts:
+                                                if isinstance(part, dict) and "text" in part:
+                                                    text = part["text"]
+                                                    if text:
+                                                        yield str(text)
+                        except (json.JSONDecodeError, TypeError, KeyError, IndexError):
+                            continue
+                    
+                    # Accumulate data lines for the current event
+                    elif line.startswith("data:"):
+                        # Extract the payload safely
+                        event_buffer.append(line[5:].removeprefix(" "))
 
         except httpx.HTTPError as e:
             raise NetworkError(f"Network transport infrastructure failure or timeout: {str(e)}", raw_error=e)
