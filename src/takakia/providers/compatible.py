@@ -70,43 +70,53 @@ class OpenAICompatibleProvider(BaseProvider):
         }
 
         try:
+            event_buffer = []
             with self.client.stream("POST", url, headers=headers, json=payload) as response:
                 if response.status_code != 200:
                     self._handle_status_error(response)
 
                 for line in response.iter_lines():
-                    clean_line = line.strip()
-                    if not clean_line or not clean_line.startswith("data:"):
-                        continue
-                    
-                    raw_data = clean_line[5:].strip()
-                    if raw_data == "[DONE]":
-                        break
-                    
-                    try:
-                        chunk = json.loads(raw_data)
-                        if not isinstance(chunk, dict):
+                    # An empty line denotes the end of an SSE event block
+                    if not line:
+                        if not event_buffer:
                             continue
                             
-                        if "error" in chunk:
-                            error_obj = chunk["error"]
-                            if isinstance(error_obj, dict):
-                                error_msg = error_obj.get("message", "An upstream provider error occurred during transmission.")
-                            else:
-                                error_msg = str(error_obj)
-                            raise ProviderError(f"API Streaming Error: {error_msg}")
+                        # Correctly comply with SSE spec by joining multiple data lines with \n
+                        raw_data = "\n".join(event_buffer)
+                        event_buffer.clear()
+                        
+                        if raw_data.strip() == "[DONE]":
+                            break
                             
-                        choices = chunk.get("choices", [])
-                        if choices and isinstance(choices, list) and len(choices) > 0:
-                            choice_entry = choices[0]
-                            if isinstance(choice_entry, dict) and "delta" in choice_entry:
-                                delta = choice_entry["delta"]
-                                if isinstance(delta, dict) and "content" in delta:
-                                    content = delta["content"]
-                                    if content:
-                                        yield str(content)
-                    except (json.JSONDecodeError, TypeError, KeyError, IndexError):
-                        continue
+                        try:
+                            chunk = json.loads(raw_data)
+                            if not isinstance(chunk, dict):
+                                continue
+                                
+                            if "error" in chunk:
+                                error_obj = chunk["error"]
+                                if isinstance(error_obj, dict):
+                                    error_msg = error_obj.get("message", "An upstream provider error occurred during transmission.")
+                                else:
+                                    error_msg = str(error_obj)
+                                raise ProviderError(f"API Streaming Error: {error_msg}")
+                                
+                            choices = chunk.get("choices", [])
+                            if choices and isinstance(choices, list) and len(choices) > 0:
+                                choice_entry = choices[0]
+                                if isinstance(choice_entry, dict) and "delta" in choice_entry:
+                                    delta = choice_entry["delta"]
+                                    if isinstance(delta, dict) and "content" in delta:
+                                        content = delta["content"]
+                                        if content:
+                                            yield str(content)
+                        except (json.JSONDecodeError, TypeError, KeyError, IndexError):
+                            continue
+                    
+                    # Accumulate data lines for the current event
+                    elif line.startswith("data:"):
+                        # Extract the payload safely avoiding stripping inner structural whitespace
+                        event_buffer.append(line[5:].removeprefix(" "))
 
         except httpx.HTTPError as e:
                     raise NetworkError(f"Network transport infrastructure failure or timeout: {str(e)}", raw_error=e)
