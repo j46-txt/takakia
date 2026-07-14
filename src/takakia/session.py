@@ -84,8 +84,8 @@ class ChatSession:
         payload size within the character limit before returning.
         """
         self._prune_history()
-        # Returns a deep collection representation to insulate internal structures
-        return [dict(message) for message in self._messages]
+        # Perform a rapid structural shallow copy; strings are immutable, dicts are rebuilt
+        return [{"role": m["role"], "content": m["content"]} for m in self._messages]
 
     def _prune_history(self) -> None:
         """
@@ -100,6 +100,12 @@ class ChatSession:
         chat_messages = self._messages[1:] if has_system else self._messages[:]
 
         system_len = len(system_msg["content"]) if system_msg else 0
+        
+        # Guardrail against system prompts eating the entire memory limit
+        if system_len > self.max_chars_limit * 0.8:
+            system_msg["content"] = system_msg["content"][:int(self.max_chars_limit * 0.8)] + "\n[System: Profile truncated to preserve memory.]"
+            system_len = len(system_msg["content"])
+
         total_chars = sum(len(m["content"]) for m in chat_messages) + system_len
 
         if total_chars <= self.max_chars_limit:
@@ -114,12 +120,32 @@ class ChatSession:
 
         remaining_chat = chat_messages[drop_idx:]
 
+        # Hard Fallback: If the remaining payload STILL exceeds the limit
+        if total_chars > self.max_chars_limit and remaining_chat:
+            excess = total_chars - self.max_chars_limit
+            last_msg = remaining_chat[-1]
+            truncation_notice = "\n\n[System: Input truncated due to memory limits.]"
+            
+            # Account for the suffix overhead and prevent negative slicing bounds
+            total_excess = excess + len(truncation_notice)
+            slice_bound = max(0, len(last_msg["content"]) - total_excess)
+            
+            truncated_content = last_msg["content"][:slice_bound] + truncation_notice
+            remaining_chat[-1] = {"role": last_msg["role"], "content": truncated_content}
+
         # Enforce API conformity: sequence context must always start with a user message turn
         user_start_idx = 0
         while user_start_idx < len(remaining_chat) and remaining_chat[user_start_idx]["role"] != "user":
             user_start_idx += 1
 
-        remaining_chat = remaining_chat[user_start_idx:]
+        if user_start_idx >= len(remaining_chat):
+            # Fallback: Retain the last message (the user input) and truncate it severely instead of wiping it
+            last_msg = chat_messages[-1] if chat_messages else {"role": "user", "content": ""}
+            trunc_notice = "\n\n[System: Context forcefully pruned.]"
+            safe_len = max(0, self.max_chars_limit - system_len - len(trunc_notice))
+            remaining_chat = [{"role": "user", "content": last_msg["content"][:safe_len] + trunc_notice}]
+        else:
+            remaining_chat = remaining_chat[user_start_idx:]
 
         # Re-assemble the state safely without breaking vendor-side expectations
         if system_msg:
