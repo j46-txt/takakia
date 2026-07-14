@@ -31,6 +31,11 @@ class AppConfig:
     default_profile: str = "default"
     extra_headers: dict[str, str] = field(default_factory=dict)
 
+    @property
+    def is_gemini_native(self) -> bool:
+        """Determines if the current configuration points to a native Google Gemini endpoint."""
+        return self.provider_name.lower() in ("gemini", "google") or "generativelanguage.googleapis.com" in self.base_url.lower()
+
 
 class ConfigManager:
     """Manages serialization, retrieval, and runtime updating of application states."""
@@ -102,20 +107,24 @@ class ConfigManager:
         """
         self.ensure_directories()
         temp_path = self.config_path.with_suffix(".tmp")
+        fd = None
         
         try:
             if os.name == "posix":
                 if temp_path.exists():
                     temp_path.unlink()
-                # Create the file with strict permissions securely up front
+                # Create file securely and RETAIN the exclusive lock
                 fd = os.open(temp_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-                os.close(fd)  # Relinquish low level descriptor safely immediately
-                
-                with open(temp_path, "w", encoding="utf-8") as f:
-                    json.dump(asdict(config), f, indent=4, ensure_ascii=False)
+                with os.fdopen(fd, "w", encoding="utf-8") as f:
+                    # Transfer ownership immediately so we don't double-close on exception
+                    fd = None 
+                    # Strip out properties from serialization via asdict
+                    base_dict = {k: v for k, v in asdict(config).items() if k in {f.name for f in fields(AppConfig)}}
+                    json.dump(base_dict, f, indent=4, ensure_ascii=False)
             else:
                 with open(temp_path, "w", encoding="utf-8") as f:
-                    json.dump(asdict(config), f, indent=4, ensure_ascii=False)
+                    base_dict = {k: v for k, v in asdict(config).items() if k in {f.name for f in fields(AppConfig)}}
+                    json.dump(base_dict, f, indent=4, ensure_ascii=False)
                     
             # Resilient atomic swap mechanism with retry fallback for process locks
             retries = 3
@@ -127,12 +136,18 @@ class ConfigManager:
                     if attempt == retries - 1:
                         raise
                     time.sleep(0.1)
-        except Exception:
-            if temp_path.is_file():
+        except BaseException:
+            # Ensure safe cleanup of the temporary artifact regardless of filesystem state
+            if fd is not None:
                 try:
-                    temp_path.unlink()
+                    os.close(fd)
                 except OSError:
                     pass
+            try:
+                if temp_path.exists():
+                    temp_path.unlink()
+            except OSError:
+                pass
             raise
 
     def is_configured(self) -> bool:
