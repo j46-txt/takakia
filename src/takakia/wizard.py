@@ -53,7 +53,7 @@ class SetupWizard:
 
             # Determine reasonable base URL defaults based on selected provider names
             default_url = "https://openrouter.ai/api/v1"
-            if provider_name.lower() == "openai":
+            if provider_name.lower() == "openrouter/free":
                 default_url = "https://api.openai.com/v1"
                 config.default_model = "gpt-4o-mini"
             elif provider_name.lower() in ("gemini", "google"):
