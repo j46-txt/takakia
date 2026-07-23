@@ -312,16 +312,19 @@ class ChatCLI:
         subcmd = parts[0].lower() if parts else "list"
         target = parts[1].strip() if len(parts) > 1 else ""
 
+        provider_keys = list(self.config.providers.keys())
+
         if subcmd == "list":
             table = Table(title=t("cmd_provider_list_title", lang=self.lang), title_justify="left")
+            table.add_column("#", style="bold cyan", no_wrap=True)
             table.add_column("Key", style="cyan", no_wrap=True)
             table.add_column("Name", style="white")
             table.add_column("Default Model", style="green")
             table.add_column("Status", style="magenta")
 
-            for key, p_conf in self.config.providers.items():
+            for idx, (key, p_conf) in enumerate(self.config.providers.items(), start=1):
                 status = "[bold green]Active[/bold green]" if key == self.config.active_provider else "Inactive"
-                table.add_row(key, p_conf.name, p_conf.default_model, status)
+                table.add_row(str(idx), key, p_conf.name, p_conf.default_model, status)
             self.console.print(table)
             self.console.print(t("cmd_provider_list_tip", lang=self.lang))
 
@@ -333,6 +336,14 @@ class ChatCLI:
                     self.console.print()
                     return
                     
+            if target.isdigit():
+                num = int(target)
+                if 1 <= num <= len(provider_keys):
+                    target = provider_keys[num - 1]
+                else:
+                    self.console.print(f"[bold yellow]Selection index {num} out of bounds.[/bold yellow]")
+                    return
+
             if target in self.config.providers:
                 if target == self.config.active_provider:
                     self.console.print(t("cmd_provider_already_active", lang=self.lang, provider=target))
@@ -368,6 +379,15 @@ class ChatCLI:
             if not target:
                 self.console.print("[yellow]Please specify a provider key to remove.[/yellow]")
                 return
+                
+            if target.isdigit():
+                num = int(target)
+                if 1 <= num <= len(provider_keys):
+                    target = provider_keys[num - 1]
+                else:
+                    self.console.print(f"[bold yellow]Selection index {num} out of bounds.[/bold yellow]")
+                    return
+
             if target not in self.config.providers:
                 self.console.print(t("cmd_provider_not_found", lang=self.lang, provider=target))
                 return
