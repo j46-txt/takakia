@@ -19,10 +19,9 @@ class ChatSession:
         
         Args:
             system_prompt: Core operational guidelines for the model backend.
-            max_chars_limit: Strict localized memory fence threshold (~10k tokens)
-                            to preserve older hardware resource cycles.
+            max_chars_limit: Strict localized memory fence threshold (~10k tokens).
         """
-        self.max_chars_limit = max_chars_limit
+        self.max_chars_limit = max(1000, max_chars_limit)
         self.system_prompt = system_prompt.strip()
         self._messages: list[dict[str, str]] = []
         self._initialize_stream()
@@ -80,24 +79,24 @@ class ChatSession:
         """
         Compiles and returns the conversation history optimized for the API request.
         
-        Applies a defensive sliding window truncation algorithm to keep the total
-        payload size within the character limit before returning.
+        Applies a non-mutating sliding window truncation algorithm to keep the total
+        payload size within character limits without polluting persistent state.
         """
-        self._prune_history()
-        # Perform a rapid structural shallow copy; strings are immutable, dicts are rebuilt
-        return [{"role": m["role"], "content": m["content"]} for m in self._messages]
+        return self._prune_history_copy()
 
-    def _prune_history(self) -> None:
+    def _prune_history_copy(self) -> list[dict[str, str]]:
         """
-        Prunes conversation history when it exceeds the character limit.
-        
-        Tracks boundaries efficiently in O(N) to discard overflowing items
-        while guaranteeing the system prompt is preserved and the remaining conversation 
-        context always starts with a valid 'user' message turn.
+        Generates a pruned copy of history without mutating internal state.
         """
-        has_system = bool(self._messages and self._messages[0]["role"] == "system")
-        system_msg = self._messages[0] if has_system else None
-        chat_messages = self._messages[1:] if has_system else self._messages[:]
+        if not self._messages:
+            return []
+
+        # Create isolated deep-ish copies of dictionary elements
+        working_messages = [{"role": m["role"], "content": m["content"]} for m in self._messages]
+
+        has_system = bool(working_messages and working_messages[0]["role"] == "system")
+        system_msg = working_messages[0] if has_system else None
+        chat_messages = working_messages[1:] if has_system else working_messages[:]
 
         system_len = len(system_msg["content"]) if system_msg else 0
         
@@ -109,49 +108,25 @@ class ChatSession:
         total_chars = sum(len(m["content"]) for m in chat_messages) + system_len
 
         if total_chars <= self.max_chars_limit:
-            return
+            return ([system_msg] + chat_messages) if system_msg else chat_messages
 
-        # Determine the exact slice index needed to bring total characters below the fence
-        drop_idx = 0
-        # Prevent the loop from dropping the final message (the current turn) entirely
-        while drop_idx < len(chat_messages) - 1 and total_chars > self.max_chars_limit:
-            total_chars -= len(chat_messages[drop_idx]["content"])
-            drop_idx += 1
+        # Drop oldest chat turns until character size limit is satisfied
+        while len(chat_messages) > 1 and total_chars > self.max_chars_limit:
+            total_chars -= len(chat_messages[0]["content"])
+            chat_messages.pop(0)
 
-        remaining_chat = chat_messages[drop_idx:]
+        # Enforce API conformity: sequence context must start with a user message turn
+        while chat_messages and chat_messages[0]["role"] != "user":
+            total_chars -= len(chat_messages[0]["content"])
+            chat_messages.pop(0)
 
-        # Hard Fallback: If the remaining payload STILL exceeds the limit
-        if total_chars > self.max_chars_limit and remaining_chat:
-            excess = total_chars - self.max_chars_limit
-            last_msg = remaining_chat[-1]
-            truncation_notice = "\n\n[System: Input truncated due to memory limits.]"
-            
-            # Account for the suffix overhead and prevent negative slicing bounds
-            total_excess = excess + len(truncation_notice)
-            slice_bound = max(0, len(last_msg["content"]) - total_excess)
-            
-            truncated_content = last_msg["content"][:slice_bound] + truncation_notice
-            remaining_chat[-1] = {"role": last_msg["role"], "content": truncated_content}
-
-        # Enforce API conformity: sequence context must always start with a user message turn
-        user_start_idx = 0
-        while user_start_idx < len(remaining_chat) and remaining_chat[user_start_idx]["role"] != "user":
-            user_start_idx += 1
-
-        if user_start_idx >= len(remaining_chat):
-            # Fallback: Retain the last message (the user input) and truncate it severely instead of wiping it
-            last_msg = chat_messages[-1] if chat_messages else {"role": "user", "content": ""}
-            trunc_notice = "\n\n[System: Context forcefully pruned.]"
+        # Truncate remaining user message if total context still exceeds limit
+        if total_chars > self.max_chars_limit and chat_messages:
+            trunc_notice = "\n\n[System: Input truncated due to memory limits.]"
             safe_len = max(0, self.max_chars_limit - system_len - len(trunc_notice))
-            remaining_chat = [{"role": "user", "content": last_msg["content"][:safe_len] + trunc_notice}]
-        else:
-            remaining_chat = remaining_chat[user_start_idx:]
+            chat_messages[0]["content"] = chat_messages[0]["content"][:safe_len] + trunc_notice
 
-        # Re-assemble the state safely without breaking vendor-side expectations
-        if system_msg:
-            self._messages = [system_msg] + remaining_chat
-        else:
-            self._messages = remaining_chat
+        return ([system_msg] + chat_messages) if system_msg else chat_messages
 
     @property
     def message_count(self) -> int:
