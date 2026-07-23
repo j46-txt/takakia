@@ -118,7 +118,8 @@ class GoogleGeminiProvider(BaseProvider):
             gemini_role = "user" if role == "user" else "model"
             
             if contents and contents[-1]["role"] == gemini_role:
-                contents[-1]["parts"][0]["text"] += f"\n\n{content}"
+                if content:
+                    contents[-1]["parts"][0]["text"] += f"\n\n{content}"
             else:
                 contents.append({
                     "role": gemini_role,
