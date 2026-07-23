@@ -44,6 +44,45 @@ class GoogleGeminiProvider(BaseProvider):
             self._client = httpx.Client(timeout=timeout)
         return self._client
 
+    def _parse_event_data(self, event_buffer: list[str]) -> Iterator[str]:
+        if not event_buffer:
+            return
+
+        raw_data = "\n".join(event_buffer)
+        event_buffer.clear()
+
+        if raw_data.strip() == "[DONE]":
+            return
+
+        try:
+            chunk = json.loads(raw_data)
+            if not isinstance(chunk, dict):
+                return
+
+            if "error" in chunk:
+                error_obj = chunk["error"]
+                if isinstance(error_obj, dict):
+                    error_msg = error_obj.get("message", "An upstream Gemini provider error occurred.")
+                else:
+                    error_msg = str(error_obj)
+                raise ProviderError(f"API Streaming Error: {error_msg}")
+
+            candidates = chunk.get("candidates", [])
+            if candidates and isinstance(candidates, list) and len(candidates) > 0:
+                candidate = candidates[0]
+                if isinstance(candidate, dict) and "content" in candidate:
+                    content_obj = candidate["content"]
+                    if isinstance(content_obj, dict) and "parts" in content_obj:
+                        parts = content_obj["parts"]
+                        if isinstance(parts, list):
+                            for part in parts:
+                                if isinstance(part, dict) and "text" in part:
+                                    text = part["text"]
+                                    if text:
+                                        yield str(text)
+        except (json.JSONDecodeError, TypeError, KeyError, IndexError):
+            pass
+
     def stream_chat(
         self,
         messages: list[dict[str, str]],
@@ -57,7 +96,6 @@ class GoogleGeminiProvider(BaseProvider):
         if model_name.startswith("models/"):
             model_name = model_name[7:]
 
-        # Formulate native Gemini REST URI with explicit SSE transport mapping
         url = f"{self.base_url}/v1beta/models/{model_name}:streamGenerateContent"
         params = {"alt": "sse", "key": self.api_key}
         
@@ -66,7 +104,6 @@ class GoogleGeminiProvider(BaseProvider):
             **self.extra_headers
         }
 
-        # Transpose standardized frame history arrays into Gemini's contents layout matrix
         contents = []
         system_instruction_text = ""
 
@@ -80,7 +117,6 @@ class GoogleGeminiProvider(BaseProvider):
                 
             gemini_role = "user" if role == "user" else "model"
             
-            # Prevent HTTP 400 by folding consecutive identical roles
             if contents and contents[-1]["role"] == gemini_role:
                 contents[-1]["parts"][0]["text"] += f"\n\n{content}"
             else:
@@ -88,6 +124,13 @@ class GoogleGeminiProvider(BaseProvider):
                     "role": gemini_role,
                     "parts": [{"text": content}]
                 })
+
+        # Safeguard against empty contents payload triggering HTTP 400
+        if not contents:
+            contents.append({
+                "role": "user",
+                "parts": [{"text": ""}]
+            })
 
         payload = {
             "contents": contents
@@ -105,51 +148,13 @@ class GoogleGeminiProvider(BaseProvider):
                     self._handle_status_error(response)
 
                 for line in response.iter_lines():
-                    # An empty line denotes the end of an SSE event block
                     if not line:
-                        if not event_buffer:
-                            continue
-                            
-                        # Reconstruct multi-line JSON structures natively compliant with SSE
-                        raw_data = "\n".join(event_buffer)
-                        event_buffer.clear()
-                        
-                        if raw_data.strip() == "[DONE]":
-                            break
-                            
-                        try:
-                            chunk = json.loads(raw_data)
-                            if not isinstance(chunk, dict):
-                                continue
-                                
-                            if "error" in chunk:
-                                error_obj = chunk["error"]
-                                if isinstance(error_obj, dict):
-                                    error_msg = error_obj.get("message", "An upstream Gemini provider error occurred.")
-                                else:
-                                    error_msg = str(error_obj)
-                                raise ProviderError(f"API Streaming Error: {error_msg}")
-                                
-                            candidates = chunk.get("candidates", [])
-                            if candidates and isinstance(candidates, list) and len(candidates) > 0:
-                                candidate = candidates[0]
-                                if isinstance(candidate, dict) and "content" in candidate:
-                                    content_obj = candidate["content"]
-                                    if isinstance(content_obj, dict) and "parts" in content_obj:
-                                        parts = content_obj["parts"]
-                                        if isinstance(parts, list):
-                                            for part in parts:
-                                                if isinstance(part, dict) and "text" in part:
-                                                    text = part["text"]
-                                                    if text:
-                                                        yield str(text)
-                        except (json.JSONDecodeError, TypeError, KeyError, IndexError):
-                            continue
-                    
-                    # Accumulate data lines for the current event
+                        yield from self._parse_event_data(event_buffer)
                     elif line.startswith("data:"):
-                        # Extract the payload safely
                         event_buffer.append(line[5:].removeprefix(" "))
+
+                # Flush trailing buffered event if connection closes cleanly without trailing newline
+                yield from self._parse_event_data(event_buffer)
 
         except httpx.HTTPError as e:
             raise NetworkError(f"Network transport infrastructure failure or timeout: {str(e)}", raw_error=e)
