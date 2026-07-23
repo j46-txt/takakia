@@ -18,24 +18,81 @@ import platformdirs
 
 APP_NAME = "takakia"
 
+@dataclass
+class ProviderConfig:
+    """Data structure representing a specific provider's credentials and settings."""
+    name: str = "OpenRouter"
+    base_url: str = "https://openrouter.ai/api/v1"
+    api_key: str = ""
+    default_model: str = "meta-llama/llama-3.1-8b-instruct"
+    extra_headers: dict[str, str] = field(default_factory=dict)
 
 @dataclass
 class AppConfig:
     """Data structure representing the application user configuration settings."""
 
     language: str = "en"
-    provider_name: str = "OpenRouter"
-    base_url: str = "https://openrouter.ai/api/v1"
-    api_key: str = ""
-    default_model: str = "meta-llama/llama-3.1-8b-instruct"
     default_profile: str = "default"
-    extra_headers: dict[str, str] = field(default_factory=dict)
+    active_provider: str = "openrouter"
+    providers: dict[str, ProviderConfig] = field(default_factory=lambda: {
+        "openrouter": ProviderConfig(name="OpenRouter")
+    })
+
+    @property
+    def active_provider_config(self) -> ProviderConfig:
+        """Safely resolves the currently active provider configuration."""
+        if self.active_provider not in self.providers:
+            if self.providers:
+                self.active_provider = next(iter(self.providers))
+            else:
+                self.providers["openrouter"] = ProviderConfig()
+                self.active_provider = "openrouter"
+        return self.providers[self.active_provider]
+
+    # Backward compatibility proxies delegating to the active provider
+    @property
+    def provider_name(self) -> str:
+        return self.active_provider_config.name
+
+    @provider_name.setter
+    def provider_name(self, value: str) -> None:
+        self.active_provider_config.name = value
+
+    @property
+    def base_url(self) -> str:
+        return self.active_provider_config.base_url
+
+    @base_url.setter
+    def base_url(self, value: str) -> None:
+        self.active_provider_config.base_url = value
+
+    @property
+    def api_key(self) -> str:
+        return self.active_provider_config.api_key
+
+    @api_key.setter
+    def api_key(self, value: str) -> None:
+        self.active_provider_config.api_key = value
+
+    @property
+    def default_model(self) -> str:
+        return self.active_provider_config.default_model
+
+    @default_model.setter
+    def default_model(self, value: str) -> None:
+        self.active_provider_config.default_model = value
+
+    @property
+    def extra_headers(self) -> dict[str, str]:
+        return self.active_provider_config.extra_headers
+
+    @extra_headers.setter
+    def extra_headers(self, value: dict[str, str]) -> None:
+        self.active_provider_config.extra_headers = value
 
     @property
     def is_gemini_native(self) -> bool:
-        """Determines if the current configuration points to a native Google Gemini endpoint."""
         return self.provider_name.lower() in ("gemini", "google") or "generativelanguage.googleapis.com" in self.base_url.lower()
-
 
 class ConfigManager:
     """Manages serialization, retrieval, and runtime updating of application states."""
@@ -50,19 +107,11 @@ class ConfigManager:
         self.cache_path = self.cache_dir / "models_cache.json"
 
     def ensure_directories(self) -> None:
-        """Guarantees that all platform-compliant application paths exist securely."""
         self.config_dir.mkdir(parents=True, exist_ok=True)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
     def load_config(self) -> AppConfig:
-        """
-        Loads the runtime application configuration from disk.
-        
-        Returns a default AppConfig instance if the file does not exist or
-        is corrupted. Safely validates incoming dictionary types to protect
-        against configuration poisoning anomalies.
-        """
         if not self.config_path.is_file():
             return AppConfig()
 
@@ -73,60 +122,70 @@ class ConfigManager:
             if not isinstance(data, dict):
                 return AppConfig()
                 
-            valid_keys = {f.name for f in fields(AppConfig)}
-            filtered_data = {k: v for k, v in data.items() if k in valid_keys}
-            
-            # Enforce strong type bounds before initializing the runtime state
             config = AppConfig()
-            if "language" in filtered_data and isinstance(filtered_data["language"], str):
-                config.language = filtered_data["language"]
-            if "provider_name" in filtered_data and isinstance(filtered_data["provider_name"], str):
-                config.provider_name = filtered_data["provider_name"]
-            if "base_url" in filtered_data and isinstance(filtered_data["base_url"], str):
-                config.base_url = filtered_data["base_url"]
-            if "api_key" in filtered_data and isinstance(filtered_data["api_key"], str):
-                config.api_key = filtered_data["api_key"]
-            if "default_model" in filtered_data and isinstance(filtered_data["default_model"], str):
-                config.default_model = filtered_data["default_model"]
-            if "default_profile" in filtered_data and isinstance(filtered_data["default_profile"], str):
-                config.default_profile = filtered_data["default_profile"]
-            if "extra_headers" in filtered_data and isinstance(filtered_data["extra_headers"], dict):
-                config.extra_headers = {str(k): str(v) for k, v in filtered_data["extra_headers"].items()}
+            
+            if "language" in data and isinstance(data["language"], str):
+                config.language = data["language"]
+            if "default_profile" in data and isinstance(data["default_profile"], str):
+                config.default_profile = data["default_profile"]
+                
+            if "providers" in data and isinstance(data["providers"], dict):
+                config.providers = {}
+                for k, v in data["providers"].items():
+                    if isinstance(v, dict):
+                        config.providers[k] = ProviderConfig(
+                            name=v.get("name", k),
+                            base_url=v.get("base_url", ""),
+                            api_key=v.get("api_key", ""),
+                            default_model=v.get("default_model", ""),
+                            extra_headers=v.get("extra_headers", {})
+                        )
+                if "active_provider" in data and isinstance(data["active_provider"], str):
+                    config.active_provider = data["active_provider"]
+            else:
+                # Automatic Migration of Legacy Configs
+                p_name = data.get("provider_name", "openrouter")
+                key_name = p_name.lower().replace(" ", "_")
+                config.providers = {
+                    key_name: ProviderConfig(
+                        name=p_name,
+                        base_url=data.get("base_url", "https://openrouter.ai/api/v1"),
+                        api_key=data.get("api_key", ""),
+                        default_model=data.get("default_model", "meta-llama/llama-3.1-8b-instruct"),
+                        extra_headers=data.get("extra_headers", {})
+                    )
+                }
+                config.active_provider = key_name
+                self.save_config(config) # Persist migrated structure
                 
             return config
         except (json.JSONDecodeError, KeyError, TypeError, AttributeError, OSError):
             return AppConfig()
 
     def save_config(self, config: AppConfig) -> None:
-        """
-        Persists the application configuration securely to disk.
-        
-        Enforces strict file permissions from the moment of creation via low-level
-        descriptors on POSIX filesystems to guarantee secret tokens are never exposed.
-        Contains a robust retry loop to handle transient Windows filesystem locks.
-        """
         self.ensure_directories()
         temp_path = self.config_path.with_suffix(".tmp")
         fd = None
+        
+        config_dict = {
+            "language": config.language,
+            "default_profile": config.default_profile,
+            "active_provider": config.active_provider,
+            "providers": {k: asdict(v) for k, v in config.providers.items()}
+        }
         
         try:
             if os.name == "posix":
                 if temp_path.exists():
                     temp_path.unlink()
-                # Create file securely and RETAIN the exclusive lock
                 fd = os.open(temp_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
                 with os.fdopen(fd, "w", encoding="utf-8") as f:
-                    # Transfer ownership immediately so we don't double-close on exception
                     fd = None 
-                    # Strip out properties from serialization via asdict
-                    base_dict = {k: v for k, v in asdict(config).items() if k in {f.name for f in fields(AppConfig)}}
-                    json.dump(base_dict, f, indent=4, ensure_ascii=False)
+                    json.dump(config_dict, f, indent=4, ensure_ascii=False)
             else:
                 with open(temp_path, "w", encoding="utf-8") as f:
-                    base_dict = {k: v for k, v in asdict(config).items() if k in {f.name for f in fields(AppConfig)}}
-                    json.dump(base_dict, f, indent=4, ensure_ascii=False)
+                    json.dump(config_dict, f, indent=4, ensure_ascii=False)
                     
-            # Resilient atomic swap mechanism with retry fallback for process locks
             retries = 3
             for attempt in range(retries):
                 try:
@@ -137,7 +196,6 @@ class ConfigManager:
                         raise
                     time.sleep(0.1)
         except BaseException:
-            # Ensure safe cleanup of the temporary artifact regardless of filesystem state
             if fd is not None:
                 try:
                     os.close(fd)
@@ -151,34 +209,52 @@ class ConfigManager:
             raise
 
     def is_configured(self) -> bool:
-        """Evaluates whether the application contains an initial core API credential setup."""
         if not self.config_path.is_file():
             return False
         config = self.load_config()
         return bool(config.api_key and config.api_key.strip())
 
-    def load_model_cache(self) -> list[str]:
-        """
-        Retrieves the cached collection of vendor models discovered from prior cycles.
-        
-        Returns an empty list if the cache is absent or structurally unreadable.
-        """
+    def load_model_cache(self, provider_key: str = None) -> list[str]:
         if not self.cache_path.is_file():
             return []
 
         try:
             with open(self.cache_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                if isinstance(data, dict) and "models" in data and isinstance(data["models"], list):
-                    return [str(m) for m in data["models"] if m]
+                
+            if not isinstance(data, dict):
+                return []
+                
+            if "providers" in data:
+                if provider_key and provider_key in data["providers"]:
+                    return [str(m) for m in data["providers"][provider_key] if m]
+                return []
+            elif "models" in data:
+                # Legacy compatibility fallback
+                return [str(m) for m in data["models"] if m]
+            
             return []
         except (json.JSONDecodeError, TypeError, OSError):
             return []
 
-    def save_model_cache(self, models: list[str]) -> None:
-        """Stores structural model lists derived dynamically during discovery routines."""
+    def save_model_cache(self, models: list[str], provider_key: str = None) -> None:
         self.ensure_directories()
-        cache_data = {"models": models}
+        
+        cache_data = {"providers": {}}
+        if self.cache_path.is_file():
+            try:
+                with open(self.cache_path, "r", encoding="utf-8") as f:
+                    old_data = json.load(f)
+                    if "providers" in old_data:
+                        cache_data = old_data
+                    elif "models" in old_data and provider_key:
+                        cache_data["providers"][provider_key] = old_data["models"]
+            except (json.JSONDecodeError, OSError):
+                pass
+        
+        if provider_key:
+            cache_data["providers"][provider_key] = models
+            
         temp_path = self.cache_path.with_suffix(".tmp")
         
         try:
@@ -203,7 +279,6 @@ class ConfigManager:
             raise
 
     def clear_model_cache(self) -> None:
-        """Wipes persistent local model lists forcing network discovery on next request."""
         try:
             self.cache_path.unlink(missing_ok=True)
         except OSError:
