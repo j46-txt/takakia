@@ -34,7 +34,9 @@ STRINGS: dict[str, dict[str, str]] = {
         
         "cmd_help_header": "\n[bold underline]Available Session Commands:[/bold underline]",
         "cmd_help_exit": "Exit the application session cleanly.",
-        "cmd_help_clear": "Reset conversational logs, starting a clean thread context.",
+        "cmd_help_clear": "Wipe conversation history and reset the terminal screen completely.",
+        "cmd_help_new": "Start a fresh thread (clear AI context) while preserving screen history.",
+        "cmd_help_cls": "Clear the physical terminal screen without wiping AI memory.",
         "cmd_help_model": "Display the currently selected AI model or switch to a new one.",
         "cmd_help_profile": "Display or switch system prompt profiles dynamically.",
         "cmd_help_provider": "List, switch, add, or remove AI providers.",
@@ -55,15 +57,16 @@ STRINGS: dict[str, dict[str, str]] = {
         "cmd_profile_invalid": "[bold red]Error: Profile '{profile}' does not exist.[/bold red]",
         
         "cmd_provider_list_title": "\n[bold underline]Configured Providers[/bold underline]",
-        "cmd_provider_list_tip": "\n[dim]Tip: Use '/provider switch <key>' to change active provider.[/dim]",
-        "cmd_provider_switch_prompt": "Enter the provider key to switch to: ",
+        "cmd_provider_list_tip": "\n[dim]Tip: Use '/provider switch <name_or_index>' to change active provider.[/dim]",
+        "cmd_provider_switch_prompt": "Enter the provider key or index to switch to: ",
         "cmd_provider_already_active": "[yellow]Provider '{provider}' is already active.[/yellow]",
         "cmd_provider_switched": "[bold green]Switched active provider to: '{provider}'. Session context cleared.[/bold green]",
-        "cmd_provider_not_found": "[bold red]Error: Provider key '{provider}' not found.[/bold red]",
+        "cmd_provider_not_found": "[bold red]Error: Provider '{provider}' not found.[/bold red]",
         
         "cmd_refresh_start": "[yellow]Contacting provider to update cached model architecture listings...[/yellow]",
         "cmd_refresh_success": "[bold green]Model discovery listings refreshed and cached cleanly.[/bold green] Total unique entries: {count}",
         "cmd_clear_success": "[bold green]Conversation context wiped cleanly. Starting a brand new thread session.[/bold green]",
+        "cmd_new_success": "\n── [bold green]New Conversation Thread Started[/bold green] (Context Cleared) ──\n",
         "cmd_setup_start": "\n[yellow]Launching the configuration setup wizard...[/yellow]\n",
         "cmd_unknown": "[bold red]Unknown internal command structure.[/bold red] Type [bold cyan]/help[/bold cyan] to view commands.",
         
@@ -97,7 +100,9 @@ STRINGS: dict[str, dict[str, str]] = {
         
         "cmd_help_header": "\n[bold underline]Comandos de Sessão Disponíveis:[/bold underline]",
         "cmd_help_exit": "Encerra a sessão do aplicativo de forma limpa.",
-        "cmd_help_clear": "Limpa os logs de conversação, reiniciando o contexto histórico do zero.",
+        "cmd_help_clear": "Limpa o histórico de conversação e reseta a tela do terminal por completo.",
+        "cmd_help_new": "Inicia uma nova thread (limpa contexto da IA) mantendo o histórico de tela.",
+        "cmd_help_cls": "Limpa a tela do terminal sem apagar a memória da IA.",
         "cmd_help_model": "Exibe o modelo de IA selecionado ou altera para uma nova escolha.",
         "cmd_help_profile": "Exibe ou altera dinamicamente os perfis de instrução do sistema.",
         "cmd_help_provider": "Lista, altera, adiciona ou remove provedores de IA.",
@@ -118,15 +123,16 @@ STRINGS: dict[str, dict[str, str]] = {
         "cmd_profile_invalid": "[bold red]Erro: O perfil '{profile}' não existe.[/bold red]",
         
         "cmd_provider_list_title": "\n[bold underline]Provedores Configurados[/bold underline]",
-        "cmd_provider_list_tip": "\n[dim]Dica: Use '/provider switch <chave>' para mudar de provedor.[/dim]",
-        "cmd_provider_switch_prompt": "Insira a chave do provedor para ativar: ",
+        "cmd_provider_list_tip": "\n[dim]Dica: Use '/provider switch <nome_ou_indice>' para mudar de provedor.[/dim]",
+        "cmd_provider_switch_prompt": "Insira a chave ou índice do provedor para ativar: ",
         "cmd_provider_already_active": "[yellow]O provedor '{provider}' já está ativo.[/yellow]",
         "cmd_provider_switched": "[bold green]Provedor ativo alterado para: '{provider}'. Contexto limpo.[/bold green]",
-        "cmd_provider_not_found": "[bold red]Erro: Chave de provedor '{provider}' não encontrada.[/bold red]",
+        "cmd_provider_not_found": "[bold red]Erro: Provedor '{provider}' não encontrado.[/bold red]",
         
         "cmd_refresh_start": "[yellow]Contatando provedor para atualizar as listagens de arquiteturas de modelos...[/yellow]",
         "cmd_refresh_success": "[bold green]Listagem de modelos atualizada e armazenada em cache.[/bold green] Total de registros: {count}",
         "cmd_clear_success": "[bold green]Contexto de conversação limpo. Iniciando uma nova thread do zero.[/bold green]",
+        "cmd_new_success": "\n── [bold green]Nova Thread de Conversa Iniciada[/bold green] (Contexto Limpo) ──\n",
         "cmd_setup_start": "\n[yellow]Iniciando o assistente interativo de configuração...[/yellow]\n",
         "cmd_unknown": "[bold red]Comando interno desconhecido.[/bold red] Digite [bold cyan]/help[/bold cyan] para ver comandos.",
         
