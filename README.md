@@ -12,6 +12,8 @@ The project intentionally prioritizes simplicity and efficiency. As a result, it
 
 * Sliding-window context truncation for low-spec hardware
 * Direct Gemini and OpenAI-compatible API streaming
+* Multi-provider support with in-session swapping
+* Per-provider model caching and discovery
 * Interactive configuration setup wizard
 * Dynamic system prompt profile switching
 * Terminal REPL with input history and slash-commands
@@ -39,10 +41,11 @@ Inside the chat loop, type `/` followed by one of these commands to control your
 
 * `/help` - Displays the command syntax mapping ledger.
 * `/clear` - Wipes conversational history to start a brand new thread.
+* `/provider` - Lists, switches, adds, or removes saved AI providers (`list`, `switch <name>`, `add`, `remove <name>`).
 * `/model` - Views active AI endpoints or switches to another cached model.
 * `/profile` - Lists or changes the current system prompt persona dynamically.
 * `/refresh` - Forces a manual online discovery scan of vendor model listings.
-* `/setup` - Reruns the interactive wizard to update API keys and endpoints safely.
+* `/setup` - Reruns the interactive wizard to reconfigure your setup.
 * `/exit` / `/quit` - Closes the application cleanly.
 
 > [!TIP]
