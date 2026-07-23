@@ -53,13 +53,12 @@ class SetupWizard:
         lang = config.language
         
         try:
-            provider_key = input("Enter a short key for this provider (e.g., 'work', 'openai', 'gemini'): ").strip().lower()
+            raw_key = input("Enter a short key for this provider (e.g., 'work', 'openai', 'gemini'): ").strip().lower()
+            provider_key = re.sub(r'[^a-z0-9_-]', '', raw_key)
             if not provider_key:
-                self.console.print("[bold red]Provider key cannot be empty.[/bold red]")
+                self.console.print("[bold red]Provider key must contain valid alphanumeric characters, hyphens, or underscores.[/bold red]")
                 return None
                 
-            provider_key = re.sub(r'[^a-z0-9_-]', '', provider_key)
-            
             provider_name = input(f"{t('wizard_provider_name', lang=lang)}: ").strip()
             if not provider_name:
                 provider_name = provider_key.title()
