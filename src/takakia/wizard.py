@@ -38,7 +38,9 @@ class SetupWizard:
             config.language = lang
             self.config_manager.save_config(config)
             
-            self.run_provider_setup(config)
+            provider_result = self.run_provider_setup(config)
+            if not provider_result:
+                return None
             
             return self.config_manager.load_config()
 
@@ -59,6 +61,12 @@ class SetupWizard:
                 self.console.print("[bold red]Provider key must contain valid alphanumeric characters, hyphens, or underscores.[/bold red]")
                 return None
                 
+            if provider_key in config.providers:
+                confirm = input(f"Provider key '{provider_key}' already exists. Overwrite? (y/N): ").strip().lower()
+                if confirm not in ("y", "yes"):
+                    self.console.print("[bold yellow]Provider setup cancelled.[/bold yellow]")
+                    return None
+
             provider_name = input(f"{t('wizard_provider_name', lang=lang)}: ").strip()
             if not provider_name:
                 provider_name = provider_key.title()
