@@ -27,6 +27,13 @@ from takakia.providers.base import ProviderError
 from takakia.providers.factory import ProviderFactory
 from takakia.session import ChatSession
 
+BANNER = """\
+▄▄▄▄▄ ▄▄▄· ▄ •▄  ▄▄▄· ▄ •▄ ▪   ▄▄▄· 
+•██  ▐█ ▀█ █▌▄▌▪▐█ ▀█ █▌▄▌▪██ ▐█ ▀█ 
+ ▐█.▪▄█▀▀█ ▐▀▀▄·▄█▀▀█ ▐▀▀▄·▐█·▄█▀▀█ 
+ ▐█▌·▐█ ▪▐▌▐█.█▌▐█ ▪▐▌▐█.█▌▐█▌▐█ ▪▐▌
+ ▀▀▀  ▀  ▀ ·▀  ▀ ▀  ▀ ·▀  ▀▀▀▀ ▀  ▀ """
+
 
 class ChatCLI:
     """Manages the lifecycle, input capture, and UI rendering of the chat session."""
@@ -55,6 +62,11 @@ class ChatCLI:
         @self.kb.add("escape", "enter")
         def _(event):
             event.current_buffer.insert_text("\n")
+
+        @self.kb.add("c-l")
+        def _(event):
+            self.console.clear()
+            event.app.renderer.clear()
             
         self.prompt_session = PromptSession(
             history=FileHistory(str(self.history_path)),
@@ -187,8 +199,11 @@ class ChatCLI:
         elif command == "/help":
             self._execute_help()
         elif command == "/clear":
-            self.session.clear()
-            self.console.print(t("cmd_clear_success", lang=self.lang))
+            self._execute_clear()
+        elif command in ("/new", "/reset"):
+            self._execute_new()
+        elif command == "/cls":
+            self._execute_cls()
         elif command == "/refresh":
             self._execute_refresh()
         elif command == "/model":
@@ -212,6 +227,8 @@ class ChatCLI:
         
         table.add_row("/help", t("cmd_help_help", lang=self.lang))
         table.add_row("/clear", t("cmd_help_clear", lang=self.lang))
+        table.add_row("/new", t("cmd_help_new", lang=self.lang))
+        table.add_row("/cls", t("cmd_help_cls", lang=self.lang))
         table.add_row("/model", t("cmd_help_model", lang=self.lang))
         table.add_row("/profile", t("cmd_help_profile", lang=self.lang))
         table.add_row("/provider", t("cmd_help_provider", lang=self.lang))
@@ -220,6 +237,29 @@ class ChatCLI:
         table.add_row("/exit", t("cmd_help_exit", lang=self.lang))
         
         self.console.print(table)
+
+    def _execute_clear(self) -> None:
+        """Resets AI conversational memory and wipes the physical terminal screen."""
+        self.session.clear()
+        self.console.clear()
+        self.console.print(BANNER)
+        self.console.print(
+            t(
+                "cli_welcome",
+                lang=self.lang,
+                profile=self.config.default_profile,
+                provider=self.config.provider_name
+            )
+        )
+
+    def _execute_new(self) -> None:
+        """Starts a fresh conversation thread (wipes AI memory) while preserving screen history."""
+        self.session.clear()
+        self.console.print(t("cmd_new_success", lang=self.lang))
+
+    def _execute_cls(self) -> None:
+        """Clears the physical terminal screen buffer without affecting AI memory."""
+        self.console.clear()
 
     def _execute_refresh(self) -> None:
         """Forces manual asset scanning updates through underlying API channels."""
