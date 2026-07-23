@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from takakia.config import ProviderConfig
 from takakia.providers.base import BaseProvider
-from takakia.providers.compatible import OpenAICompatibleProvider
+
 
 class ProviderFactory:
     """Factory for generating provider adapters from configuration objects."""
@@ -16,7 +16,8 @@ class ProviderFactory:
     @staticmethod
     def create(config: ProviderConfig) -> BaseProvider:
         """Instantiates the appropriate provider based on configuration."""
-        is_gemini = config.name.lower() in ("gemini", "google") or "generativelanguage.googleapis.com" in config.base_url.lower()
+        base_url_lower = config.base_url.lower()
+        is_gemini = "generativelanguage.googleapis.com" in base_url_lower
 
         if is_gemini:
             from takakia.providers.google import GoogleGeminiProvider
@@ -27,6 +28,7 @@ class ProviderFactory:
                 extra_headers=config.extra_headers,
             )
         else:
+            from takakia.providers.compatible import OpenAICompatibleProvider
             return OpenAICompatibleProvider(
                 api_key=config.api_key,
                 base_url=config.base_url,
