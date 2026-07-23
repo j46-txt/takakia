@@ -10,9 +10,8 @@ from __future__ import annotations
 import json
 import os
 import time
-from dataclasses import asdict, dataclass, field, fields
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
 
 import platformdirs
 
@@ -92,7 +91,7 @@ class AppConfig:
 
     @property
     def is_gemini_native(self) -> bool:
-        return self.provider_name.lower() in ("gemini", "google") or "generativelanguage.googleapis.com" in self.base_url.lower()
+        return "generativelanguage.googleapis.com" in self.base_url.lower()
 
 class ConfigManager:
     """Manages serialization, retrieval, and runtime updating of application states."""
@@ -133,26 +132,28 @@ class ConfigManager:
                 config.providers = {}
                 for k, v in data["providers"].items():
                     if isinstance(v, dict):
+                        extra_h = v.get("extra_headers")
                         config.providers[k] = ProviderConfig(
-                            name=v.get("name", k),
-                            base_url=v.get("base_url", ""),
-                            api_key=v.get("api_key", ""),
-                            default_model=v.get("default_model", ""),
-                            extra_headers=v.get("extra_headers", {})
+                            name=str(v.get("name") or k),
+                            base_url=str(v.get("base_url") or ""),
+                            api_key=str(v.get("api_key") or ""),
+                            default_model=str(v.get("default_model") or ""),
+                            extra_headers=extra_h if isinstance(extra_h, dict) else {}
                         )
                 if "active_provider" in data and isinstance(data["active_provider"], str):
                     config.active_provider = data["active_provider"]
             else:
                 # Automatic Migration of Legacy Configs
-                p_name = data.get("provider_name", "openrouter")
+                p_name = str(data.get("provider_name") or "openrouter")
                 key_name = p_name.lower().replace(" ", "_")
+                extra_h = data.get("extra_headers")
                 config.providers = {
                     key_name: ProviderConfig(
                         name=p_name,
-                        base_url=data.get("base_url", "https://openrouter.ai/api/v1"),
-                        api_key=data.get("api_key", ""),
-                        default_model=data.get("default_model", "meta-llama/llama-3.1-8b-instruct"),
-                        extra_headers=data.get("extra_headers", {})
+                        base_url=str(data.get("base_url") or "https://openrouter.ai/api/v1"),
+                        api_key=str(data.get("api_key") or ""),
+                        default_model=str(data.get("default_model") or "meta-llama/llama-3.1-8b-instruct"),
+                        extra_headers=extra_h if isinstance(extra_h, dict) else {}
                     )
                 }
                 config.active_provider = key_name
@@ -162,34 +163,28 @@ class ConfigManager:
         except (json.JSONDecodeError, KeyError, TypeError, AttributeError, OSError):
             return AppConfig()
 
-    def save_config(self, config: AppConfig) -> None:
+    def _atomic_write_json(self, target_path: Path, data_dict: dict) -> None:
+        """Helper method to atomically write JSON structures to disk across platforms."""
         self.ensure_directories()
-        temp_path = self.config_path.with_suffix(".tmp")
+        temp_path = target_path.with_suffix(".tmp")
         fd = None
-        
-        config_dict = {
-            "language": config.language,
-            "default_profile": config.default_profile,
-            "active_provider": config.active_provider,
-            "providers": {k: asdict(v) for k, v in config.providers.items()}
-        }
-        
+
         try:
             if os.name == "posix":
                 if temp_path.exists():
                     temp_path.unlink()
                 fd = os.open(temp_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
                 with os.fdopen(fd, "w", encoding="utf-8") as f:
-                    fd = None 
-                    json.dump(config_dict, f, indent=4, ensure_ascii=False)
+                    fd = None
+                    json.dump(data_dict, f, indent=4, ensure_ascii=False)
             else:
                 with open(temp_path, "w", encoding="utf-8") as f:
-                    json.dump(config_dict, f, indent=4, ensure_ascii=False)
-                    
+                    json.dump(data_dict, f, indent=4, ensure_ascii=False)
+
             retries = 3
             for attempt in range(retries):
                 try:
-                    temp_path.replace(self.config_path)
+                    temp_path.replace(target_path)
                     break
                 except (OSError, PermissionError, FileExistsError):
                     if attempt == retries - 1:
@@ -207,6 +202,15 @@ class ConfigManager:
             except OSError:
                 pass
             raise
+
+    def save_config(self, config: AppConfig) -> None:
+        config_dict = {
+            "language": config.language,
+            "default_profile": config.default_profile,
+            "active_provider": config.active_provider,
+            "providers": {k: asdict(v) for k, v in config.providers.items()}
+        }
+        self._atomic_write_json(self.config_path, config_dict)
 
     def is_configured(self) -> bool:
         if not self.config_path.is_file():
@@ -238,45 +242,23 @@ class ConfigManager:
             return []
 
     def save_model_cache(self, models: list[str], provider_key: str = None) -> None:
-        self.ensure_directories()
-        
         cache_data = {"providers": {}}
         if self.cache_path.is_file():
             try:
                 with open(self.cache_path, "r", encoding="utf-8") as f:
                     old_data = json.load(f)
-                    if "providers" in old_data:
-                        cache_data = old_data
-                    elif "models" in old_data and provider_key:
-                        cache_data["providers"][provider_key] = old_data["models"]
+                    if isinstance(old_data, dict):
+                        if "providers" in old_data and isinstance(old_data["providers"], dict):
+                            cache_data = old_data
+                        elif "models" in old_data and provider_key and isinstance(old_data["models"], list):
+                            cache_data["providers"][provider_key] = old_data["models"]
             except (json.JSONDecodeError, OSError):
                 pass
         
         if provider_key:
             cache_data["providers"][provider_key] = models
             
-        temp_path = self.cache_path.with_suffix(".tmp")
-        
-        try:
-            with open(temp_path, "w", encoding="utf-8") as f:
-                json.dump(cache_data, f, indent=4, ensure_ascii=False)
-                
-            retries = 3
-            for attempt in range(retries):
-                try:
-                    temp_path.replace(self.cache_path)
-                    break
-                except (OSError, PermissionError, FileExistsError):
-                    if attempt == retries - 1:
-                        raise
-                    time.sleep(0.1)
-        except Exception:
-            if temp_path.is_file():
-                try:
-                    temp_path.unlink()
-                except OSError:
-                    pass
-            raise
+        self._atomic_write_json(self.cache_path, cache_data)
 
     def clear_model_cache(self) -> None:
         try:
