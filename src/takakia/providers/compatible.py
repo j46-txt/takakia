@@ -44,6 +44,41 @@ class OpenAICompatibleProvider(BaseProvider):
             self._client = httpx.Client(timeout=timeout)
         return self._client
 
+    def _parse_event_data(self, event_buffer: list[str]) -> Iterator[str]:
+        if not event_buffer:
+            return
+
+        raw_data = "\n".join(event_buffer)
+        event_buffer.clear()
+
+        if raw_data.strip() == "[DONE]":
+            return
+
+        try:
+            chunk = json.loads(raw_data)
+            if not isinstance(chunk, dict):
+                return
+
+            if "error" in chunk:
+                error_obj = chunk["error"]
+                if isinstance(error_obj, dict):
+                    error_msg = error_obj.get("message", "An upstream provider error occurred during transmission.")
+                else:
+                    error_msg = str(error_obj)
+                raise ProviderError(f"API Streaming Error: {error_msg}")
+
+            choices = chunk.get("choices", [])
+            if choices and isinstance(choices, list) and len(choices) > 0:
+                choice_entry = choices[0]
+                if isinstance(choice_entry, dict) and "delta" in choice_entry:
+                    delta = choice_entry["delta"]
+                    if isinstance(delta, dict) and "content" in delta:
+                        content = delta["content"]
+                        if content:
+                            yield str(content)
+        except (json.JSONDecodeError, TypeError, KeyError, IndexError):
+            pass
+
     def stream_chat(
         self,
         messages: list[dict[str, str]],
@@ -51,8 +86,6 @@ class OpenAICompatibleProvider(BaseProvider):
     ) -> Iterator[str]:
         """
         Sends conversation histories to the endpoint and yields text tokens in real time.
-        
-        Performs proactive chunk assembly and strict type validation to ensure reliability.
         """
         target_model = model.strip() if model else self.default_model
         url = f"{self.base_url}/chat/completions"
@@ -76,50 +109,16 @@ class OpenAICompatibleProvider(BaseProvider):
                     self._handle_status_error(response)
 
                 for line in response.iter_lines():
-                    # An empty line denotes the end of an SSE event block
                     if not line:
-                        if not event_buffer:
-                            continue
-                            
-                        # Correctly comply with SSE spec by joining multiple data lines with \n
-                        raw_data = "\n".join(event_buffer)
-                        event_buffer.clear()
-                        
-                        if raw_data.strip() == "[DONE]":
-                            break
-                            
-                        try:
-                            chunk = json.loads(raw_data)
-                            if not isinstance(chunk, dict):
-                                continue
-                                
-                            if "error" in chunk:
-                                error_obj = chunk["error"]
-                                if isinstance(error_obj, dict):
-                                    error_msg = error_obj.get("message", "An upstream provider error occurred during transmission.")
-                                else:
-                                    error_msg = str(error_obj)
-                                raise ProviderError(f"API Streaming Error: {error_msg}")
-                                
-                            choices = chunk.get("choices", [])
-                            if choices and isinstance(choices, list) and len(choices) > 0:
-                                choice_entry = choices[0]
-                                if isinstance(choice_entry, dict) and "delta" in choice_entry:
-                                    delta = choice_entry["delta"]
-                                    if isinstance(delta, dict) and "content" in delta:
-                                        content = delta["content"]
-                                        if content:
-                                            yield str(content)
-                        except (json.JSONDecodeError, TypeError, KeyError, IndexError):
-                            continue
-                    
-                    # Accumulate data lines for the current event
+                        yield from self._parse_event_data(event_buffer)
                     elif line.startswith("data:"):
-                        # Extract the payload safely avoiding stripping inner structural whitespace
                         event_buffer.append(line[5:].removeprefix(" "))
 
+                # Flush trailing buffered event if connection closes cleanly without trailing newline
+                yield from self._parse_event_data(event_buffer)
+
         except httpx.HTTPError as e:
-                    raise NetworkError(f"Network transport infrastructure failure or timeout: {str(e)}", raw_error=e)
+            raise NetworkError(f"Network transport infrastructure failure or timeout: {str(e)}", raw_error=e)
         except Exception as e:
             if not isinstance(e, ProviderError):
                 raise ProviderError(f"An unexpected internal transport breakdown occurred: {str(e)}", raw_error=e)
@@ -128,8 +127,6 @@ class OpenAICompatibleProvider(BaseProvider):
     def list_models(self) -> list[str]:
         """
         Queries the vendor endpoint to discover valid structural AI engine options.
-        
-        Returns an alphabetically sorted list of alphanumeric model identifiers.
         """
         url = f"{self.base_url}/models"
         headers = {
