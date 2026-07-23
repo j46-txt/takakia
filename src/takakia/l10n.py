@@ -142,7 +142,8 @@ STRINGS: dict[str, dict[str, str]] = {
 DEFAULT_LANG = "en"
 
 def t(key: str, lang: str = DEFAULT_LANG, **kwargs: Any) -> str:
-    target_lang = lang.lower() if lang.lower() in STRINGS else DEFAULT_LANG
+    lang_str = str(lang).lower() if lang else DEFAULT_LANG
+    target_lang = lang_str if lang_str in STRINGS else DEFAULT_LANG
     lang_dict = STRINGS[target_lang]
     
     if key in lang_dict:
