@@ -7,7 +7,6 @@ slash-command dispatch routing, and dynamic response token streaming.
 
 from __future__ import annotations
 
-import sys
 import time
 from typing import Optional
 
@@ -15,7 +14,6 @@ from rich.console import Console
 from rich.live import Live
 from rich.markup import escape
 from rich.table import Table
-from rich.text import Text
 from rich.markdown import Markdown
 
 from prompt_toolkit import PromptSession, prompt as pt_prompt
@@ -173,7 +171,10 @@ class ChatCLI:
             raise
         finally:
             if 'stream' in locals() and hasattr(stream, 'close'):
-                stream.close()
+                try:
+                    stream.close()
+                except Exception:
+                    pass
 
     def _handle_command(self, cmd_string: str) -> bool:
         """Parses commands starting with forward slashes."""
@@ -260,12 +261,16 @@ class ChatCLI:
 
         if argument:
             target_model = argument.strip()
-            if target_model.isdigit() and cached_models:
-                num = int(target_model)
-                if 1 <= num <= len(cached_models):
-                    target_model = cached_models[num - 1]
+            if target_model.isdigit():
+                if cached_models:
+                    num = int(target_model)
+                    if 1 <= num <= len(cached_models):
+                        target_model = cached_models[num - 1]
+                    else:
+                        self.console.print("[bold yellow]Selection choice index out of bounds. Action cancelled.[/bold yellow]")
+                        return
                 else:
-                    self.console.print("[bold yellow]Selection choice index out of bounds. Action cancelled.[/bold yellow]")
+                    self.console.print("[bold yellow]Model cache is currently empty. Execute /refresh first.[/bold yellow]")
                     return
 
             self.config.default_model = target_model
@@ -336,8 +341,9 @@ class ChatCLI:
                 self.config.active_provider = target
                 self.config_manager.save_config(self.config)
                 
+                new_provider = ProviderFactory.create(self.config.active_provider_config)
                 self.provider.close()
-                self.provider = ProviderFactory.create(self.config.active_provider_config)
+                self.provider = new_provider
                 self.session.clear()
                 
                 self.console.print(t("cmd_provider_switched", lang=self.lang, provider=target))
@@ -352,8 +358,9 @@ class ChatCLI:
             
             if new_provider_key:
                 self.config = self.config_manager.load_config()
+                new_provider = ProviderFactory.create(self.config.active_provider_config)
                 self.provider.close()
-                self.provider = ProviderFactory.create(self.config.active_provider_config)
+                self.provider = new_provider
                 self.session.clear()
                 self.console.print(t("cmd_provider_switched", lang=self.lang, provider=new_provider_key))
 
@@ -393,8 +400,9 @@ class ChatCLI:
         self.config = new_config
         self.lang = new_config.language
         
+        new_provider = ProviderFactory.create(new_config.active_provider_config)
         self.provider.close()
-        self.provider = ProviderFactory.create(new_config.active_provider_config)
+        self.provider = new_provider
         
         new_prompt = self.profile_manager.load_profile(new_config.default_profile)
         self.session.clear(alternative_prompt=new_prompt)
