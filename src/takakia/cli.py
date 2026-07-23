@@ -26,7 +26,7 @@ from takakia.config import ConfigManager
 from takakia.l10n import t
 from takakia.profiles import ProfileManager
 from takakia.providers.base import ProviderError
-from takakia.providers.compatible import OpenAICompatibleProvider
+from takakia.providers.factory import ProviderFactory
 from takakia.session import ChatSession
 
 
@@ -43,25 +43,11 @@ class ChatCLI:
         system_prompt = self.profile_manager.load_profile(self.config.default_profile)
         self.session = ChatSession(system_prompt=system_prompt)
         
-        if self.config.is_gemini_native:
-            from takakia.providers.google import GoogleGeminiProvider
-            self.provider = GoogleGeminiProvider(
-                api_key=self.config.api_key,
-                base_url=self.config.base_url,
-                default_model=self.config.default_model,
-                extra_headers=self.config.extra_headers,
-                )
-        else:
-            self.provider = OpenAICompatibleProvider(
-                api_key=self.config.api_key,
-                base_url=self.config.base_url,
-                default_model=self.config.default_model,
-                extra_headers=self.config.extra_headers,
-            )
+        self.provider = ProviderFactory.create(self.config.active_provider_config)
+        
         self.history_path = self.config_manager.cache_dir / "chat_history.txt"
         self.config_manager.ensure_directories()
 
-        # Configure standard CLI chat UX: Enter submits, Alt+Enter (Escape, Enter) breaks line
         self.kb = KeyBindings()
         
         @self.kb.add("enter")
@@ -85,6 +71,7 @@ class ChatCLI:
                 "cli_welcome",
                 lang=self.lang,
                 profile=self.config.default_profile,
+                provider=self.config.provider_name
             )
         )
 
@@ -134,14 +121,12 @@ class ChatCLI:
             stream = self.provider.stream_chat(messages=payload, model=self.config.default_model)
             first_token = None
             
-            # Display a dynamic ellipsis (...) animation while waiting for network response
             with self.console.status("", spinner="simpleDots"):
                 try:
                     first_token = next(stream)
                 except StopIteration:
                     pass
 
-            # Push the initial token forward and consume the remaining live stream pipeline
             complete_text = ""
             if first_token is not None:
                 full_response_buffer.append(first_token)
@@ -150,24 +135,19 @@ class ChatCLI:
                 last_render_time = time.monotonic()
                 current_len = len(complete_text)
                 
-                # Disable the background thread entirely (auto_refresh=False)
                 with Live(Markdown(complete_text), console=self.console, auto_refresh=False, transient=False) as live:
                     for token in stream:
                         full_response_buffer.append(token)
                         current_len += len(token)
                         current_time = time.monotonic()
                         
-                        # Adaptive UI Throttling for Low-Spec Hardware:
-                        # Base 0.05s delay + 0.02s penalty for every 1000 characters processed.
-                        # This prevents the rich Markdown AST parser from locking up the CPU on O(N^2) tasks.
                         adaptive_delay = 0.05 + (current_len / 1000.0) * 0.02
-                        adaptive_delay = min(adaptive_delay, 0.5) # Hard cap at 0.5s so it never freezes
+                        adaptive_delay = min(adaptive_delay, 0.5)
                         
                         if current_time - last_render_time >= adaptive_delay:
                             live.update(Markdown("".join(full_response_buffer)), refresh=True)
                             last_render_time = current_time
                     
-                    # Ensure the final output frame is flushed perfectly
                     complete_text = "".join(full_response_buffer)
                     live.update(Markdown(complete_text), refresh=True)
             else:
@@ -214,6 +194,8 @@ class ChatCLI:
             self._execute_model(argument)
         elif command == "/profile":
             self._execute_profile(argument)
+        elif command == "/provider":
+            self._execute_provider(argument)
         elif command == "/setup":
             self._execute_setup()
         else:
@@ -231,6 +213,7 @@ class ChatCLI:
         table.add_row("/clear", t("cmd_help_clear", lang=self.lang))
         table.add_row("/model", t("cmd_help_model", lang=self.lang))
         table.add_row("/profile", t("cmd_help_profile", lang=self.lang))
+        table.add_row("/provider", t("cmd_help_provider", lang=self.lang))
         table.add_row("/refresh", t("cmd_help_refresh", lang=self.lang))
         table.add_row("/setup", t("cmd_help_setup", lang=self.lang))
         table.add_row("/exit", t("cmd_help_exit", lang=self.lang))
@@ -243,7 +226,7 @@ class ChatCLI:
         try:
             models = self.provider.list_models()
             if models:
-                self.config_manager.save_model_cache(models)
+                self.config_manager.save_model_cache(models, provider_key=self.config.active_provider)
                 self.console.print(t("cmd_refresh_success", lang=self.lang, count=len(models)))
             else:
                 self.console.print("[bold yellow]No models found to register.[/bold yellow]")
@@ -252,7 +235,7 @@ class ChatCLI:
 
     def _execute_model(self, argument: str) -> None:
         """Displays currently active AI endpoints or hot-swaps active choices dynamically."""
-        cached_models = self.config_manager.load_model_cache()
+        cached_models = self.config_manager.load_model_cache(provider_key=self.config.active_provider)
         
         if not argument:
             self.console.print(t("cmd_model_current", lang=self.lang, model=self.config.default_model))
@@ -318,6 +301,83 @@ class ChatCLI:
         else:
             self.console.print(t("cmd_profile_invalid", lang=self.lang, profile=argument))
 
+    def _execute_provider(self, argument: str) -> None:
+        """Manages and hot-swaps active AI providers contextually."""
+        parts = argument.split(maxsplit=1)
+        subcmd = parts[0].lower() if parts else "list"
+        target = parts[1].strip() if len(parts) > 1 else ""
+
+        if subcmd == "list":
+            table = Table(title=t("cmd_provider_list_title", lang=self.lang), title_justify="left")
+            table.add_column("Key", style="cyan", no_wrap=True)
+            table.add_column("Name", style="white")
+            table.add_column("Default Model", style="green")
+            table.add_column("Status", style="magenta")
+
+            for key, p_conf in self.config.providers.items():
+                status = "[bold green]Active[/bold green]" if key == self.config.active_provider else "Inactive"
+                table.add_row(key, p_conf.name, p_conf.default_model, status)
+            self.console.print(table)
+            self.console.print(t("cmd_provider_list_tip", lang=self.lang))
+
+        elif subcmd == "switch":
+            if not target:
+                try:
+                    target = pt_prompt(t("cmd_provider_switch_prompt", lang=self.lang)).strip()
+                except (EOFError, KeyboardInterrupt):
+                    self.console.print()
+                    return
+                    
+            if target in self.config.providers:
+                if target == self.config.active_provider:
+                    self.console.print(t("cmd_provider_already_active", lang=self.lang, provider=target))
+                    return
+                    
+                self.config.active_provider = target
+                self.config_manager.save_config(self.config)
+                
+                self.provider.close()
+                self.provider = ProviderFactory.create(self.config.active_provider_config)
+                self.session.clear()
+                
+                self.console.print(t("cmd_provider_switched", lang=self.lang, provider=target))
+            else:
+                self.console.print(t("cmd_provider_not_found", lang=self.lang, provider=target))
+
+        elif subcmd == "add":
+            self.console.print("[yellow]Launching provider setup wizard...[/yellow]")
+            from takakia.wizard import SetupWizard
+            wizard = SetupWizard(self.config_manager)
+            new_provider_key = wizard.run_provider_setup()
+            
+            if new_provider_key:
+                self.config = self.config_manager.load_config()
+                self.provider.close()
+                self.provider = ProviderFactory.create(self.config.active_provider_config)
+                self.session.clear()
+                self.console.print(t("cmd_provider_switched", lang=self.lang, provider=new_provider_key))
+
+        elif subcmd == "remove":
+            if not target:
+                self.console.print("[yellow]Please specify a provider key to remove.[/yellow]")
+                return
+            if target not in self.config.providers:
+                self.console.print(t("cmd_provider_not_found", lang=self.lang, provider=target))
+                return
+            if len(self.config.providers) <= 1:
+                self.console.print("[bold red]Cannot remove the last remaining provider.[/bold red]")
+                return
+            if target == self.config.active_provider:
+                self.console.print("[bold red]Cannot remove the currently active provider. Switch first.[/bold red]")
+                return
+                
+            del self.config.providers[target]
+            self.config_manager.save_config(self.config)
+            self.console.print(f"[bold green]Provider '{target}' removed successfully.[/bold green]")
+
+        else:
+            self.console.print("[red]Unknown provider subcommand. Use list, switch, add, or remove.[/red]")
+
     def _execute_setup(self) -> None:
         """Launches the configuration wizard to overwrite settings and hot-reloads runtime parameters."""
         self.console.print(t("cmd_setup_start", lang=self.lang))
@@ -333,25 +393,8 @@ class ChatCLI:
         self.config = new_config
         self.lang = new_config.language
         
-        # Explicitly teardown lingering HTTP transport pools before re-allocation
         self.provider.close()
-        
-        # Re-instantiate the provider completely to guarantee pristine encapsulation boundaries
-        if new_config.is_gemini_native:
-            from takakia.providers.google import GoogleGeminiProvider
-            self.provider = GoogleGeminiProvider(
-                api_key=new_config.api_key,
-                base_url=new_config.base_url,
-                default_model=new_config.default_model,
-                extra_headers=new_config.extra_headers,
-            )
-        else:
-            self.provider = OpenAICompatibleProvider(
-                api_key=new_config.api_key,
-                base_url=new_config.base_url,
-                default_model=new_config.default_model,
-                extra_headers=new_config.extra_headers,
-            )
+        self.provider = ProviderFactory.create(new_config.active_provider_config)
         
         new_prompt = self.profile_manager.load_profile(new_config.default_profile)
         self.session.clear(alternative_prompt=new_prompt)
