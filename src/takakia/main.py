@@ -15,16 +15,8 @@ from rich.console import Console
 from rich.panel import Panel
 
 from takakia.config import ConfigManager
-from takakia.cli import ChatCLI
+from takakia.cli import BANNER, ChatCLI
 from takakia.l10n import t
-from takakia.wizard import SetupWizard
-
-BANNER = """\
-▄▄▄▄▄ ▄▄▄· ▄ •▄  ▄▄▄· ▄ •▄ ▪   ▄▄▄· 
-•██  ▐█ ▀█ █▌▄▌▪▐█ ▀█ █▌▄▌▪██ ▐█ ▀█ 
- ▐█.▪▄█▀▀█ ▐▀▀▄·▄█▀▀█ ▐▀▀▄·▐█·▄█▀▀█ 
- ▐█▌·▐█ ▪▐▌▐█.█▌▐█ ▪▐▌▐█.█▌▐█▌▐█ ▪▐▌
- ▀▀▀  ▀  ▀ ·▀  ▀ ▀  ▀ ·▀  ▀▀▀▀ ▀  ▀ """
 
 
 def setup_diagnostic_logger(config_manager: ConfigManager) -> logging.Logger:
@@ -76,6 +68,7 @@ def main() -> None:
 
     try:
         if not config_manager.is_configured():
+            from takakia.wizard import SetupWizard
             wizard = SetupWizard(config_manager)
             current_config = wizard.run()
             if not current_config:
