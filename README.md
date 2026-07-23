@@ -40,7 +40,9 @@ To disable all profile instructions and interact with the model using only your 
 Inside the chat loop, type `/` followed by one of these commands to control your session:
 
 * `/help` - Displays the command syntax mapping ledger.
-* `/clear` - Wipes conversational history to start a brand new thread.
+* `/clear` - Wipes conversational history and resets the terminal screen.
+* `/new` - Starts a fresh conversation thread (clears AI context) while preserving terminal scrollback.
+* `/cls` - Clears the physical terminal screen without wiping AI memory.
 * `/provider` - Lists, switches, adds, or removes saved AI providers (`list`, `switch <name>`, `add`, `remove <name>`).
 * `/model` - Views active AI endpoints or switches to another cached model.
 * `/profile` - Lists or changes the current system prompt persona dynamically.
