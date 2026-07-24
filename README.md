@@ -4,7 +4,7 @@ A command-line AI chat interface optimized for older or low-spec hardware. Desig
 
 By minimizing external dependencies and using direct, stateless HTTP streaming adapters, it delivers a responsive terminal chat experience while keeping memory and CPU footprint exceptionally low.
 
-The project intentionally prioritizes simplicity and efficiency. As a result, it does not support file or image attachments, and conversation history is limited to a bounded sliding window (~40,000 characters) to keep resource usage predictable on modest systems.
+The project intentionally prioritizes simplicity and efficiency. As a result, it does not support file or image attachments, and conversation history is limited to a bounded sliding window to keep resource usage predictable on modest systems.
 
 <sub>(A TUI implementation using prompt_toolkit is planned for the future)</sub>
 
