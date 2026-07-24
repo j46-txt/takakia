@@ -63,9 +63,9 @@ Inside the chat loop, type `/` followed by one of these commands to control your
 
 ## About
 
-This project is one of the tools I built for myself. Not meant to change the world, just something that might also be useful to someone else.
+Modern web-based LLM interfaces often impose heavy memory and CPU overhead on modest machines. Inspired by lightweight Linux distributions like antiX, **Takakia** was created to solve this and keep modern AI tools accessible on older, low-spec hardware.
 
-Feel free to fork it or submit a pull request!
+Contributions, issues, and pull requests are welcome!
 
 ---
 
