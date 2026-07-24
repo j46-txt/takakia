@@ -4,9 +4,9 @@ A command-line AI chat interface optimized for older or low-spec hardware. Desig
 
 By minimizing external dependencies and using direct, stateless HTTP streaming adapters, it delivers a responsive terminal chat experience while keeping memory and CPU footprint exceptionally low.
 
-The project intentionally prioritizes simplicity and efficiency. As a result, it does not support file or image attachments (yet), and conversation history is limited to a bounded sliding window (for now) to keep resource usage predictable on modest systems.
+The project intentionally prioritizes simplicity and efficiency. As a result, it currently does not support file or image attachments, and conversation history is limited to a bounded sliding window to keep resource usage predictable on modest systems.
 
-<sub>(A TUI implementation using prompt_toolkit is possibly planned for the future)</sub>
+<sub>(A TUI implementation using prompt_toolkit is planned for the future)</sub>
 
 ## Features
 
@@ -64,6 +64,8 @@ Inside the chat loop, type `/` followed by one of these commands to control your
 ## About
 
 Modern web-based LLM interfaces often impose heavy memory and CPU overhead on modest machines. Inspired by lightweight Linux distributions like antiX, **Takakia** was created to solve this and keep modern AI tools accessible on older, low-spec hardware.
+
+This project was originally built as a personal tool to support my workflow on an old laptop. The name is inspired by the genus _Takakia_, one of the oldest known bryophytes.
 
 Contributions, issues, and pull requests are welcome!
 
