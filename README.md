@@ -6,7 +6,7 @@ By minimizing external dependencies and using direct, stateless HTTP streaming a
 
 The project intentionally prioritizes simplicity and efficiency. As a result, it currently does not support file or image attachments, and conversation history is limited to a bounded sliding window to keep resource usage predictable on modest systems.
 
-<sub>(A TUI implementation using prompt_toolkit is planned for the future)</sub>
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/074cbeaa-74e9-4d30-a925-34e18e6142a0" />
 
 ## Features
 
