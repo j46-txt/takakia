@@ -114,3 +114,19 @@ Run the global command in your terminal from anywhere:
 takakia
 ```
 *On the first run, an interactive wizard will guide you through setting up interface language, API key, and preferred model.*
+
+---
+
+### Uninstalling
+
+If you need to cleanly remove `takakia`, its virtual environment, executable wrappers, and system `PATH` entries, run the uninstaller script from the project folder:
+
+#### Linux & macOS
+```bash
+chmod +x uninstall.sh && ./uninstall.sh
+```
+
+#### Windows
+```powershell
+powershell -ExecutionPolicy Bypass -File .\uninstall.ps1
+```
