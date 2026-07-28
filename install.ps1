@@ -44,24 +44,27 @@ $cmdContent = "@echo off`r`n`"$venvDir\Scripts\takakia.exe`" %*"
 Set-Content -Path (Join-Path $binDir "takakia.cmd") -Value $cmdContent
 Set-Content -Path (Join-Path $binDir "takakia.bat") -Value $cmdContent
 
-# 6. Safely update User PATH using .NET System API (Broadcasts WM_SETTINGCHANGE across Windows)
-$currentUserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-$pathElements = if ([string]::IsNullOrEmpty($currentUserPath)) { @() } else { $currentUserPath -split ';' }
+# 6. Safely bind binary pathway to User PATH environment & broadcast changes
 $cleanBinDir = $binDir.TrimEnd('\')
+$currentUserPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+if ([string]::IsNullOrEmpty($currentUserPath)) { $currentUserPath = "" }
 
-if ($pathElements -notcontains $cleanBinDir -and $pathElements -notcontains "$cleanBinDir\") {
+$expandedUserPath = [System.Environment]::ExpandEnvironmentVariables($currentUserPath)
+$pathElements = $currentUserPath -split ';' | Where-Object { $_.Trim() -ne "" }
+$expandedElements = $expandedUserPath -split ';' | Where-Object { $_.Trim() -ne "" }
+
+if ($expandedElements -notcontains $cleanBinDir) {
     Write-Host "Injecting local binary path to User PATH environment..." -ForegroundColor Yellow
-    $filteredElements = $pathElements | Where-Object { $_.Trim() -ne "" }
-    $newPathString = (($filteredElements + $cleanBinDir) -join ';')
-    
-    # Update registry and broadcast changes globally
+    $newPathString = (($pathElements + $cleanBinDir) -join ';')
     [System.Environment]::SetEnvironmentVariable("Path", $newPathString, "User")
-    
-    # Update current execution context PATH
-    $env:Path = "$env:Path;$cleanBinDir"
-    
-    Write-Host "✅ Installation completed successfully!" -ForegroundColor Green
-    Write-Host "⚠️  Please CLOSE and RESTART your terminal window for the 'takakia' command to take effect globally." -ForegroundColor Yellow
 } else {
-    Write-Host "✅ Installation completed successfully! Run the application globally using: takakia" -ForegroundColor Green
+    # Force broadcast to fix stale environment states across Windows
+    [System.Environment]::SetEnvironmentVariable("Path", $currentUserPath, "User")
 }
+
+# Sync active session PATH immediately
+if (($env:Path -split ';') -notcontains $cleanBinDir) {
+    $env:Path = "$env:Path;$cleanBinDir"
+}
+
+Write-Host "✅ Installation completed successfully! Run the application using: takakia" -ForegroundColor Green
