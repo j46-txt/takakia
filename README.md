@@ -52,7 +52,9 @@ Inside the chat loop, type `/` followed by one of these commands to control your
 * `/exit` / `/quit` - Closes the application cleanly.
 
 > [!TIP]
-> To insert a new line in your input without sending the message, press `ALT + ENTER`.
+> `ALT + ENTER`: insert a new line in your input
+> `CTRL + C`: abort the current operation
+> `CTRL + SHIFT + V`: paste text (works in most terminals)
 
 ## Technology
 
