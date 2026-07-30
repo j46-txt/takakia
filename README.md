@@ -34,7 +34,7 @@ To disable all profile instructions and interact with the model using only your 
 > * **Linux & macOS:** `~/.config/takakia/profiles/`
 > * **Windows:** `%APPDATA%\takakia\profiles\`
 > 
-> *(Alternatively, you can place your custom profiles inside the `src/takakia/profiles/` directory in the source folder before running the installation script).*
+> Alternatively, you can place your custom profiles inside the `src/takakia/profiles/` directory in the source folder before running the installation script.
 
 ## Commands
 
