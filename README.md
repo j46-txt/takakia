@@ -25,7 +25,7 @@ The project intentionally prioritizes simplicity and efficiency. As a result, it
 
 Profiles are optional system prompts that adjust how the AI approaches your requests.
 
-For example, `study` encourages structured teaching, `translation` focuses on faithful translations with brief linguistic notes, and `writing` prioritizes concise editing and copywriting. The default `general` profile keeps the assistant broadly useful while optimizing responses for a fast, plain-text terminal experience.
+For example, `study` encourages structured teaching, `translation` focuses on faithful translations with brief linguistic notes, and `writing` prioritizes concise editing and copywriting. The default `general` profile keeps the assistant broadly useful. All profiles optimize responses for the terminal context, addressing limitations such as the lack of support for LaTeX and other math formatting systems.
 
 To disable all profile instructions and interact with the model using only your prompts, switch to the `disabled` profile with the `/profile` command.
 
@@ -52,9 +52,9 @@ Inside the chat loop, type `/` followed by one of these commands to control your
 * `/exit` / `/quit` - Closes the application cleanly.
 
 > [!TIP]
-> `ALT + ENTER`: insert a new line in your input
-> `CTRL + C`: abort the current operation
-> `CTRL + SHIFT + V`: paste text (works in most terminals)
+> * `ALT + ENTER`: insert a new line in your input
+> * `CTRL + C`: abort the current operation
+> * `CTRL + SHIFT + C` and `CTRL + SHIFT + V`: copy and paste text (works in most terminals)
 
 ## Technology
 
