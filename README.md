@@ -2,9 +2,6 @@
 
 A command-line AI chat interface optimized for older or low-spec hardware. Designed for an immediate, ready-to-use experience: open a terminal, type a prompt, and get an answer.
 
-<img width="500" alt="image" src="https://github.com/user-attachments/assets/074cbeaa-74e9-4d30-a925-34e18e6142a0" />
-
-
 By minimizing external dependencies and using direct, stateless HTTP streaming adapters, it delivers a responsive terminal chat experience while keeping memory and CPU footprint exceptionally low.
 
 The project intentionally prioritizes simplicity and efficiency. As a result, it currently does not support file or image attachments, and conversation history is limited to a bounded sliding window to keep resource usage predictable on modest systems.
