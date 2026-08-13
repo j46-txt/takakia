@@ -42,7 +42,7 @@ class ChatCLI:
         self.config_manager = config_manager
         self.config = config_manager.load_config()
         self.lang = self.config.language
-        self.console = Console()
+        self.console = Console(soft_wrap=True)
         
         self.profile_manager = ProfileManager()
         system_prompt = self.profile_manager.load_profile(self.config.default_profile)
