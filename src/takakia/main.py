@@ -55,7 +55,7 @@ def main() -> None:
         except AttributeError:
             pass
 
-    console = Console()
+    console = Console(soft_wrap=True)
     
     # Render application banner exactly once at startup
     console.print(BANNER)
