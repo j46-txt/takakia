@@ -25,7 +25,7 @@ class SetupWizard:
 
     def __init__(self, config_manager: ConfigManager) -> None:
         self.config_manager = config_manager
-        self.console = Console()
+        self.console = Console(soft_wrap=True)
 
     def run(self) -> Optional[AppConfig]:
         """Executes the interactive onboarding sequence."""
