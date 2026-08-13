@@ -42,7 +42,7 @@ class ChatCLI:
         self.config_manager = config_manager
         self.config = config_manager.load_config()
         self.lang = self.config.language
-        self.console = Console(soft_wrap=True)
+        self.console = Console()
         
         self.profile_manager = ProfileManager()
         system_prompt = self.profile_manager.load_profile(self.config.default_profile)
@@ -145,7 +145,8 @@ class ChatCLI:
                 last_render_time = time.monotonic()
                 current_len = len(complete_text)
                 
-                with Live(Markdown(complete_text), console=self.console, auto_refresh=False, transient=False) as live:
+                # Stream using a transient Live canvas to avoid trailing spaces in terminal scrollback
+                with Live(Markdown(complete_text), console=self.console, auto_refresh=False, transient=True) as live:
                     for token in stream:
                         full_response_buffer.append(token)
                         current_len += len(token)
@@ -160,6 +161,10 @@ class ChatCLI:
                     
                     complete_text = "".join(full_response_buffer)
                     live.update(Markdown(complete_text), refresh=True)
+
+                # Render final response in a clean single pass without padding spaces
+                if complete_text:
+                    self.console.print(Markdown(complete_text))
             else:
                 self.console.print("\n[dim yellow]The provider returned an empty response stream.[/dim yellow]")
                 
