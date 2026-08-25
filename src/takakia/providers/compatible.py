@@ -1,7 +1,7 @@
 """
 Universal OpenAI-Compatible API Adapter.
 
-Communicates with any compliant /v1 REST engine endpoint via stateless HTTP protocols,
+Communicates with any compliant /v1 REST engine endpoint via HTTP protocols,
 streaming chunk responses line-by-line while maintaining clean resource closures.
 """
 
@@ -38,10 +38,17 @@ class OpenAICompatibleProvider(BaseProvider):
     def client(self) -> httpx.Client:
         """
         Lazily instantiates and safely recycles a persistent underlying HTTP client pool.
+        Uses keepalive_expiry and explicit transport retries to prevent stale sockets.
         """
         if self._client is None or self._client.is_closed:
-            timeout = httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0)
-            self._client = httpx.Client(timeout=timeout)
+            limits = httpx.Limits(
+                max_keepalive_connections=5,
+                max_connections=10,
+                keepalive_expiry=10.0
+            )
+            transport = httpx.HTTPTransport(retries=3, verify=True)
+            timeout = httpx.Timeout(connect=3.5, read=60.0, write=10.0, pool=5.0)
+            self._client = httpx.Client(timeout=timeout, limits=limits, transport=transport)
         return self._client
 
     def _parse_event_data(self, event_buffer: list[str]) -> Iterator[str]:
@@ -86,6 +93,7 @@ class OpenAICompatibleProvider(BaseProvider):
     ) -> Iterator[str]:
         """
         Sends conversation histories to the endpoint and yields text tokens in real time.
+        Includes an automatic reconnect attempt if a stale connection handshake occurs.
         """
         target_model = model.strip() if model else self.default_model
         url = f"{self.base_url}/chat/completions"
@@ -102,27 +110,31 @@ class OpenAICompatibleProvider(BaseProvider):
             "stream": True
         }
 
-        try:
-            event_buffer = []
-            with self.client.stream("POST", url, headers=headers, json=payload) as response:
-                if response.status_code != 200:
-                    self._handle_status_error(response)
+        for attempt in range(2):
+            try:
+                event_buffer = []
+                with self.client.stream("POST", url, headers=headers, json=payload) as response:
+                    if response.status_code != 200:
+                        self._handle_status_error(response)
 
-                for line in response.iter_lines():
-                    if not line:
-                        yield from self._parse_event_data(event_buffer)
-                    elif line.startswith("data:"):
-                        event_buffer.append(line[5:].removeprefix(" "))
+                    for line in response.iter_lines():
+                        if not line:
+                            yield from self._parse_event_data(event_buffer)
+                        elif line.startswith("data:"):
+                            event_buffer.append(line[5:].removeprefix(" "))
 
-                # Flush trailing buffered event if connection closes cleanly without trailing newline
-                yield from self._parse_event_data(event_buffer)
-
-        except httpx.HTTPError as e:
-            raise NetworkError(f"Network transport infrastructure failure or timeout: {str(e)}", raw_error=e)
-        except Exception as e:
-            if not isinstance(e, ProviderError):
-                raise ProviderError(f"An unexpected internal transport breakdown occurred: {str(e)}", raw_error=e)
-            raise
+                    yield from self._parse_event_data(event_buffer)
+                break
+            except (httpx.ConnectError, httpx.RemoteProtocolError, httpx.CloseError) as e:
+                self.close()
+                if attempt == 1:
+                    raise NetworkError(f"Network transport infrastructure failure or timeout: {str(e)}", raw_error=e)
+            except httpx.HTTPError as e:
+                raise NetworkError(f"Network transport infrastructure failure or timeout: {str(e)}", raw_error=e)
+            except Exception as e:
+                if not isinstance(e, ProviderError):
+                    raise ProviderError(f"An unexpected internal transport breakdown occurred: {str(e)}", raw_error=e)
+                raise
 
     def list_models(self) -> list[str]:
         """
