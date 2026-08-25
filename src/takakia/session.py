@@ -2,7 +2,7 @@
 Conversation State and History Management Engine.
 
 Maintains running conversational context streams, message payload compilation,
-and automatic memory pruning limits to optimize local execution footprint.
+and automatic memory pruning limits to optimize local execution footprint and API latencies.
 """
 
 from __future__ import annotations
@@ -13,13 +13,13 @@ from typing import Optional
 class ChatSession:
     """Manages the lifecycle, role assignments, and volume constraints of a chat thread."""
 
-    def __init__(self, system_prompt: str, max_chars_limit: int = 40000) -> None:
+    def __init__(self, system_prompt: str, max_chars_limit: int = 24000) -> None:
         """
         Initializes a clean conversation state session thread.
         
         Args:
             system_prompt: Core operational guidelines for the model backend.
-            max_chars_limit: Strict localized memory fence threshold (~10k tokens).
+            max_chars_limit: Strict localized memory fence threshold (~6k tokens) to keep TTFT low.
         """
         self.max_chars_limit = max(1000, max_chars_limit)
         self.system_prompt = system_prompt.strip()
@@ -91,7 +91,6 @@ class ChatSession:
         if not self._messages:
             return []
 
-        # Create isolated deep-ish copies of dictionary elements
         working_messages = [{"role": m["role"], "content": m["content"]} for m in self._messages]
 
         has_system = bool(working_messages and working_messages[0]["role"] == "system")
@@ -100,7 +99,6 @@ class ChatSession:
 
         system_len = len(system_msg["content"]) if system_msg else 0
         
-        # Guardrail against system prompts eating the entire memory limit
         if system_len > self.max_chars_limit * 0.8:
             system_msg["content"] = system_msg["content"][:int(self.max_chars_limit * 0.8)] + "\n[System: Profile truncated to preserve memory.]"
             system_len = len(system_msg["content"])
@@ -110,17 +108,14 @@ class ChatSession:
         if total_chars <= self.max_chars_limit:
             return ([system_msg] + chat_messages) if system_msg else chat_messages
 
-        # Drop oldest chat turns until character size limit is satisfied
         while len(chat_messages) > 1 and total_chars > self.max_chars_limit:
             total_chars -= len(chat_messages[0]["content"])
             chat_messages.pop(0)
 
-        # Enforce API conformity: sequence context must start with a user message turn
         while chat_messages and chat_messages[0]["role"] != "user":
             total_chars -= len(chat_messages[0]["content"])
             chat_messages.pop(0)
 
-        # Truncate remaining user message if total context still exceeds limit
         if total_chars > self.max_chars_limit and chat_messages:
             trunc_notice = "\n\n[System: Input truncated due to memory limits.]"
             safe_len = max(0, self.max_chars_limit - system_len - len(trunc_notice))
