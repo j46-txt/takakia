@@ -63,9 +63,9 @@ Inside the chat loop, type `/` followed by one of these commands to control your
 
 ## About
 
-Modern web-based LLM interfaces often impose heavy memory and CPU overhead on modest machines. **Takakia** aims to solve this and keep modern AI tools accessible on older, low-spec hardware.
+Modern web-based LLM interfaces often impose heavy memory and CPU overhead on modest machines, **Takakia** aims to solve this for LLMs.
 
-This project was originally built as a personal tool to support my workflow on an old laptop. The name is inspired by the genus _Takakia_, one of the oldest known bryophyte lineages.
+This project was originally built as a personal tool to support my workflow on an old laptop.
 
 Contributions, issues, and pull requests are welcome!
 
