@@ -65,9 +65,7 @@ Inside the chat loop, type `/` followed by one of these commands to control your
 
 Modern web-based LLM interfaces often impose heavy memory and CPU overhead on older, low-spec machines, **Takakia** aims to solve this, providing an accessible AI chat interface directly from the terminal (with some limitations).
 
-This project was originally built as a personal tool to support my workflow on an old laptop.
-
-Contributions, issues, and pull requests are welcome!
+This project was originally built as a personal tool to support my workflow on an old laptop. Contributions, issues, and pull requests are welcome.
 
 ---
 
